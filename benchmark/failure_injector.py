@@ -120,6 +120,25 @@ def load_base_episodes(dataset_name: str = "lerobot/pusht",
     return episodes[:n_episodes]
 
 
+def load_base_episodes_multi(dataset_names: list,
+                             n_episodes_each: int = 150) -> list:
+    """
+    Load clean episodes from multiple datasets and return a combined pool.
+    Episodes from each dataset are tagged with their source so the RF
+    sees diverse robot kinematics during training.
+    """
+    all_episodes = []
+    for ds in dataset_names:
+        try:
+            eps = load_base_episodes(ds, n_episodes=n_episodes_each)
+            all_episodes.extend(eps)
+            print(f"    {ds}: {len(eps)} episodes")
+        except Exception as e:
+            print(f"    {ds}: failed ({e}), skipping")
+    print(f"  → {len(all_episodes)} total episodes across {len(dataset_names)} datasets")
+    return all_episodes
+
+
 # ── Failure injectors ─────────────────────────────────────────────────────────
 
 def _copy_ep(episode: dict) -> dict:
@@ -401,7 +420,8 @@ def extract_episode_features(episode_dict: dict) -> np.ndarray:
 # ── Benchmark generation ──────────────────────────────────────────────────────
 
 def generate_benchmark(n_per_class: int = 500,
-                       dataset_name: str = "lerobot/pusht",
+                       dataset_name: str = None,
+                       dataset_names: list = None,
                        output_dir: str = None,
                        seed: int = 42,
                        hard_neg_fraction: float = HARD_NEG_FRACTION) -> pd.DataFrame:
@@ -416,6 +436,9 @@ def generate_benchmark(n_per_class: int = 500,
       - hard_neg_fraction of the nominal budget is filled with hard negatives —
         episodes that look superficially like failures but are labelled nominal.
         Forces the model to learn actual failure patterns not just magnitude.
+      - dataset_names (list): load base episodes from multiple datasets so the
+        RF trains on diverse robot kinematics and generalises cross-platform.
+        Falls back to dataset_name (single string) for backward compatibility.
 
     Saves:
       benchmark/data/train.parquet
@@ -428,8 +451,23 @@ def generate_benchmark(n_per_class: int = 500,
 
     rng = np.random.RandomState(seed)
 
-    print("Loading base episodes from LeRobot...")
-    base_eps = load_base_episodes(dataset_name, n_episodes=max(200, n_per_class))
+    # Resolve dataset list
+    if dataset_names is None:
+        if dataset_name is None:
+            dataset_name = "lerobot/pusht"
+        dataset_names = [dataset_name]
+    else:
+        if dataset_name is None:
+            dataset_name = dataset_names[0]   # for metadata
+
+    print("Loading base episodes from LeRobot datasets...")
+    if len(dataset_names) == 1:
+        base_eps = load_base_episodes(dataset_names[0],
+                                      n_episodes=max(200, n_per_class))
+    else:
+        n_each   = max(100, n_per_class // len(dataset_names))
+        base_eps = load_base_episodes_multi(dataset_names, n_episodes_each=n_each)
+
     if len(base_eps) < 10:
         raise RuntimeError("Not enough base episodes loaded. Check dataset access.")
 
@@ -522,7 +560,7 @@ def generate_benchmark(n_per_class: int = 500,
         "test_episodes":     len(test),
         "hard_negatives":    n_hard,
         "hard_neg_fraction": hard_neg_fraction,
-        "base_datasets":     [dataset_name],
+        "base_datasets":     dataset_names,
         "feature_dim":       len(all_records[0]["features"]) if all_records else 0,
         "version":           "1.1.0",
         "changes_vs_v1":     [
@@ -551,8 +589,11 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Haptal failure injection benchmark")
     parser.add_argument("--n-per-class",       type=int,   default=500,
                         help="Episodes per failure class (default: 500)")
-    parser.add_argument("--dataset",           type=str,   default="lerobot/pusht",
-                        help="Base LeRobot dataset (default: lerobot/pusht)")
+    parser.add_argument("--dataset",           type=str,   default=None,
+                        help="Single base dataset (overridden by --datasets)")
+    parser.add_argument("--datasets",          type=str,   default=None,
+                        help="Comma-separated list of base datasets for multi-dataset training, "
+                             "e.g. lerobot/pusht,lerobot/xarm_lift_medium_replay")
     parser.add_argument("--output-dir",        type=str,   default=None,
                         help="Output directory (default: benchmark/data/)")
     parser.add_argument("--seed",              type=int,   default=42)
@@ -561,9 +602,15 @@ if __name__ == "__main__":
                              f"(default: {HARD_NEG_FRACTION})")
     args = parser.parse_args()
 
+    ds_list = (
+        [d.strip() for d in args.datasets.split(",")]
+        if args.datasets else None
+    )
+
     generate_benchmark(
         n_per_class=args.n_per_class,
         dataset_name=args.dataset,
+        dataset_names=ds_list,
         output_dir=args.output_dir,
         seed=args.seed,
         hard_neg_fraction=args.hard_neg_fraction,

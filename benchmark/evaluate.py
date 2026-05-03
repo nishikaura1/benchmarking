@@ -74,30 +74,31 @@ def episode_to_haptal_features(row) -> np.ndarray:
 def evaluate_cross_dataset(trained_rf,
                            trained_scaler,
                            trained_classes: list,
-                           held_out_dataset: str = "lerobot/xarm_lift_medium_replay",
+                           train_datasets: list,
+                           held_out_dataset: str = "lerobot/aloha_sim_insertion_human",
                            n_per_class: int = 100,
                            seed: int = 42) -> dict:
     """
-    Fix 2 — Cross-dataset validation.
+    Cross-dataset validation.
 
-    Train on pusht (benchmark/data/train.parquet).
-    Test on a completely different robot dataset by generating fresh
-    synthetic failures from that dataset's episodes.
+    Generates synthetic failures from a dataset that was NOT in the training
+    pool, then runs the trained RF on it to measure true generalisation.
 
-    If accuracy drops more than 15% vs in-distribution test, the model is
-    overfitting to the training dataset's feature distribution.
-
+    held_out_dataset must be different from every dataset in train_datasets.
     Returns a dict with cross_macro_f1, cross_accuracy, and the gap.
     """
     from benchmark.failure_injector import generate_benchmark
     import tempfile
 
+    train_str = " + ".join(d.split("/")[-1] for d in train_datasets)
+    ood_short = held_out_dataset.split("/")[-1]
+
     print(f"\n{'='*58}")
     print(f"  CROSS-DATASET EVALUATION")
-    print(f"  Train: lerobot/pusht  →  Test: {held_out_dataset}")
+    print(f"  Train: {train_str}")
+    print(f"  OOD  : {ood_short}")
     print(f"{'='*58}")
 
-    # Generate fresh benchmark from the held-out dataset in a temp dir
     with tempfile.TemporaryDirectory() as tmp:
         try:
             generate_benchmark(
@@ -112,13 +113,11 @@ def evaluate_cross_dataset(trained_rf,
             print(f"  Skipping cross-dataset evaluation.")
             return {}
 
-    print(f"  OOD test set: {len(ood_test):,} episodes from {held_out_dataset}")
+    print(f"  OOD test set: {len(ood_test):,} episodes from {ood_short}")
 
-    X_ood = np.array([episode_to_haptal_features(r) for _, r in ood_test.iterrows()])
-    y_ood = ood_test["failure_class"].values
-
-    # Align classes — OOD set may have same class names
-    X_ood_sc  = trained_scaler.transform(X_ood)
+    X_ood      = np.array([episode_to_haptal_features(r) for _, r in ood_test.iterrows()])
+    y_ood      = ood_test["failure_class"].values
+    X_ood_sc   = trained_scaler.transform(X_ood)
     y_ood_pred = trained_rf.predict(X_ood_sc)
 
     cross_macro_f1 = round(float(
@@ -131,6 +130,7 @@ def evaluate_cross_dataset(trained_rf,
     print(f"  Cross-dataset accuracy : {cross_accuracy:.4f}")
 
     return {
+        "train_datasets":   train_datasets,
         "held_out_dataset": held_out_dataset,
         "n_ood_episodes":   len(ood_test),
         "cross_macro_f1":   cross_macro_f1,
@@ -138,19 +138,45 @@ def evaluate_cross_dataset(trained_rf,
     }
 
 
+# Datasets used for multi-dataset training (held-out OOD = aloha_sim_insertion)
+TRAIN_DATASETS = [
+    "lerobot/pusht",
+    "lerobot/xarm_lift_medium_replay",
+    "lerobot/xarm_push_medium_replay",
+    "lerobot/aloha_sim_transfer_cube_human",
+]
+OOD_DATASET = "lerobot/aloha_sim_insertion_human"
+
+
 def evaluate_benchmark(test_path: str = None,
                        save: bool = True,
-                       cross_dataset: bool = True) -> dict:
+                       cross_dataset: bool = True,
+                       multi_dataset: bool = True,
+                       n_per_class: int = 500) -> dict:
     """
     Evaluate Haptal features on the failure benchmark.
 
     Approach:
-      1. Extract 68-dim Haptal step features for every episode → aggregate to 204-dim
-      2. Train an episode-level RF on benchmark/data/train.parquet
-      3. Evaluate on benchmark/data/test.parquet  (in-distribution)
-      4. Evaluate on a held-out dataset           (cross-dataset generalisation)
-      5. Report per-class F1, macro F1, accuracy, Cohen's Kappa, and the OOD gap
+      1. If multi_dataset=True, regenerate train/test from TRAIN_DATASETS
+         (pusht + xArm lift + xArm push + ALOHA transfer) so the RF sees
+         diverse robot kinematics and generalises cross-platform.
+      2. Extract 68-dim Haptal step features → aggregate to 204-dim per episode
+      3. Train an episode-level RF on the multi-dataset train split
+      4. Evaluate on the in-distribution test split
+      5. Evaluate on aloha_sim_insertion (fully held-out OOD dataset)
+      6. Report per-class F1, macro F1, accuracy, Cohen's Kappa, and OOD gap
     """
+    from benchmark.failure_injector import generate_benchmark
+
+    if multi_dataset:
+        print(f"\nRegenerating multi-dataset benchmark ({len(TRAIN_DATASETS)} datasets)...")
+        generate_benchmark(
+            n_per_class=n_per_class,
+            dataset_names=TRAIN_DATASETS,
+            output_dir=str(DATA_DIR),
+            seed=42,
+        )
+
     if test_path is None:
         test_path = str(DATA_DIR / "test.parquet")
 
@@ -256,6 +282,8 @@ def evaluate_benchmark(test_path: str = None,
             trained_rf=rf,
             trained_scaler=scaler,
             trained_classes=classes,
+            train_datasets=TRAIN_DATASETS if multi_dataset else ["lerobot/pusht"],
+            held_out_dataset=OOD_DATASET,
         )
         if ood_results:
             ood_f1  = ood_results["cross_macro_f1"]
@@ -320,14 +348,20 @@ def evaluate_benchmark(test_path: str = None,
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--test-path",       type=str,  default=None)
-    parser.add_argument("--no-save",         action="store_true")
-    parser.add_argument("--no-cross-dataset", action="store_true",
+    parser.add_argument("--test-path",         type=str,  default=None)
+    parser.add_argument("--no-save",           action="store_true")
+    parser.add_argument("--no-cross-dataset",  action="store_true",
                         help="Skip cross-dataset OOD evaluation")
+    parser.add_argument("--no-multi-dataset",  action="store_true",
+                        help="Use single-dataset train split (faster, less accurate)")
+    parser.add_argument("--n-per-class",       type=int,  default=500,
+                        help="Episodes per class when regenerating (default: 500)")
     args = parser.parse_args()
 
     evaluate_benchmark(
         test_path=args.test_path,
         save=not args.no_save,
         cross_dataset=not args.no_cross_dataset,
+        multi_dataset=not args.no_multi_dataset,
+        n_per_class=args.n_per_class,
     )
