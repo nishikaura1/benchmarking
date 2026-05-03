@@ -135,82 +135,201 @@ def _sync(ep: dict):
 
 def inject_grasp_slip(episode: dict,
                       slip_start: int = None,
-                      severity: float = 0.35) -> tuple:
-    """Drop grip force suddenly — simulates object slipping."""
+                      severity: float = None,
+                      rng: np.random.RandomState = None) -> tuple:
+    """Drop grip force suddenly — simulates object slipping.
+
+    Randomised: timing (30–60% of episode), severity (0.20–0.55),
+    duration (10–35 steps), per-step Gaussian sensor noise.
+    """
+    if rng is None:
+        rng = np.random.RandomState()
     ep  = _copy_ep(episode)
     T   = len(ep["action"])
+    D   = ep["action"].shape[1]
+
+    # Randomise parameters
     if slip_start is None:
-        slip_start = int(T * 0.4)
-    duration = min(20, T - slip_start - 1)
+        slip_start = int(T * rng.uniform(0.30, 0.60))
+    if severity is None:
+        severity = rng.uniform(0.20, 0.55)
+    duration = int(rng.uniform(10, min(35, T - slip_start - 1)))
+
     for i in range(slip_start, slip_start + duration):
         decay = (i - slip_start) / max(duration, 1)
-        ep["action"][i] *= (1 - severity * decay)
+        noise = rng.normal(0, 0.02, D)
+        ep["action"][i] = ep["action"][i] * (1 - severity * decay) + noise
     _sync(ep)
     return ep, "grasp_slip", slip_start
 
 
 def inject_velocity_spike(episode: dict,
                           spike_at: int = None,
-                          magnitude: float = 3.2) -> tuple:
-    """Sudden velocity spike — overcorrection or joint jerk."""
+                          magnitude: float = None,
+                          rng: np.random.RandomState = None) -> tuple:
+    """Sudden velocity spike — overcorrection or joint jerk.
+
+    Randomised: timing (30–70%), magnitude (2.0–5.0×),
+    rebound fraction (0.3–0.6×), sensor noise on spike step.
+    """
+    if rng is None:
+        rng = np.random.RandomState()
     ep = _copy_ep(episode)
     T  = len(ep["action"])
+    D  = ep["action"].shape[1]
+
     if spike_at is None:
-        spike_at = int(T * 0.5)
+        spike_at = int(T * rng.uniform(0.30, 0.70))
+    if magnitude is None:
+        magnitude = rng.uniform(2.0, 5.0)
+    rebound  = rng.uniform(0.30, 0.60)
+    noise    = rng.normal(0, 0.05, D)
+
     spike_at = min(spike_at, T - 2)
-    ep["action"][spike_at]     *= magnitude
-    ep["action"][spike_at + 1] *= -magnitude * 0.4   # rebound
+    ep["action"][spike_at]     = ep["action"][spike_at] * magnitude + noise
+    ep["action"][spike_at + 1] = ep["action"][spike_at + 1] * (-magnitude * rebound)
     _sync(ep)
     return ep, "velocity_spike", spike_at
 
 
 def inject_trajectory_deviation(episode: dict,
                                 deviation_start: int = None,
-                                drift: float = 0.15) -> tuple:
-    """Gradual drift from intended path."""
+                                drift: float = None,
+                                rng: np.random.RandomState = None) -> tuple:
+    """Gradual drift from intended path.
+
+    Randomised: onset (20–50%), drift magnitude (0.05–0.30),
+    per-step noise scale (0.05–0.20), random drift direction per joint.
+    """
+    if rng is None:
+        rng = np.random.RandomState()
     ep  = _copy_ep(episode)
     T   = len(ep["action"])
-    rng = np.random.RandomState(42)
+    D   = ep["action"].shape[1]
+
     if deviation_start is None:
-        deviation_start = int(T * 0.3)
+        deviation_start = int(T * rng.uniform(0.20, 0.50))
+    if drift is None:
+        drift = rng.uniform(0.05, 0.30)
+
+    # Random drift direction vector, fixed per episode
+    direction    = rng.normal(1.0, 0.3, D)
+    noise_scale  = rng.uniform(0.05, 0.20)
+
     for i in range(deviation_start, T):
         progress         = (i - deviation_start) / max(T - deviation_start, 1)
-        ep["action"][i] += drift * progress * rng.normal(1, 0.1, ep["action"].shape[1])
+        step_noise       = rng.normal(0, noise_scale, D)
+        ep["action"][i] += drift * progress * direction + step_noise
     _sync(ep)
     return ep, "trajectory_deviation", deviation_start
 
 
 def inject_stuck_joint(episode: dict,
                        stuck_at: int = None,
-                       duration: int = 30) -> tuple:
-    """Joint stops moving — motor stall or collision."""
+                       duration: int = None,
+                       rng: np.random.RandomState = None) -> tuple:
+    """Joint stops moving — motor stall or collision.
+
+    Randomised: onset (30–60%), duration (15–50 steps),
+    micro-vibration noise (0.0005–0.005).
+    """
+    if rng is None:
+        rng = np.random.RandomState()
     ep  = _copy_ep(episode)
     T   = len(ep["action"])
-    rng = np.random.RandomState(7)
+
     if stuck_at is None:
-        stuck_at = int(T * 0.45)
-    stuck_at  = min(stuck_at, T - duration - 1)
-    stuck_val = ep["action"][stuck_at].copy()
+        stuck_at = int(T * rng.uniform(0.30, 0.60))
+    if duration is None:
+        duration = int(rng.uniform(15, 50))
+
+    noise_scale = rng.uniform(0.0005, 0.005)
+    stuck_at    = min(stuck_at, T - duration - 1)
+    stuck_val   = ep["action"][stuck_at].copy()
+
     for i in range(stuck_at, min(stuck_at + duration, T)):
-        ep["action"][i] = stuck_val + rng.normal(0, 0.001, stuck_val.shape)
+        ep["action"][i] = stuck_val + rng.normal(0, noise_scale, stuck_val.shape)
     _sync(ep)
     return ep, "stuck_joint", stuck_at
 
 
 def inject_overcorrect(episode: dict,
-                       drop_at: int = None) -> tuple:
-    """Post-failure overcorrection — operator panic response."""
+                       drop_at: int = None,
+                       rng: np.random.RandomState = None) -> tuple:
+    """Post-failure overcorrection — operator panic response.
+
+    Randomised: onset (35–65%), suppress factor (0.05–0.20),
+    amplify factor (2.0–4.0×), phase durations.
+    """
+    if rng is None:
+        rng = np.random.RandomState()
     ep = _copy_ep(episode)
     T  = len(ep["action"])
+
     if drop_at is None:
-        drop_at = int(T * 0.5)
-    drop_at = min(drop_at, T - 26)
-    for i in range(drop_at, min(drop_at + 10, T)):
-        ep["action"][i] *= 0.1
-    for i in range(drop_at + 10, min(drop_at + 25, T)):
-        ep["action"][i] *= 2.8
+        drop_at = int(T * rng.uniform(0.35, 0.65))
+
+    suppress_factor = rng.uniform(0.05, 0.20)
+    amplify_factor  = rng.uniform(2.0, 4.0)
+    suppress_len    = int(rng.uniform(5, 15))
+    amplify_len     = int(rng.uniform(10, 20))
+
+    drop_at = min(drop_at, T - suppress_len - amplify_len - 1)
+    for i in range(drop_at, min(drop_at + suppress_len, T)):
+        ep["action"][i] *= suppress_factor
+    for i in range(drop_at + suppress_len,
+                   min(drop_at + suppress_len + amplify_len, T)):
+        ep["action"][i] *= amplify_factor
     _sync(ep)
     return ep, "overcorrect", drop_at
+
+
+# ── Hard negatives ────────────────────────────────────────────────────────────
+
+def generate_hard_negative(episode: dict,
+                           rng: np.random.RandomState = None) -> tuple:
+    """
+    Nominal episode that looks superficially like a failure but isn't.
+
+    Three patterns (chosen randomly):
+      A) Sub-threshold spike — momentary velocity jump that immediately recovers
+      B) Controlled deceleration — robot slows dramatically then resumes
+      C) Minor drift — small position deviation well within tolerance
+    Label is always 'nominal' — the robot succeeds.
+    """
+    if rng is None:
+        rng = np.random.RandomState()
+    ep = _copy_ep(episode)
+    T  = len(ep["action"])
+    D  = ep["action"].shape[1]
+
+    pattern = rng.randint(3)
+    onset   = int(T * rng.uniform(0.35, 0.55))
+    onset   = min(onset, T - 10)
+
+    if pattern == 0:
+        # Sub-threshold spike: 1.3–1.8× (below failure threshold of ~2×)
+        spike_mag = rng.uniform(1.3, 1.8)
+        ep["action"][onset]     = ep["action"][onset] * spike_mag
+        ep["action"][onset + 1] = ep["action"][onset + 1] * rng.uniform(0.5, 0.8)
+        ep["action"][onset + 2] = ep["action"][onset + 2] * rng.uniform(0.9, 1.1)
+
+    elif pattern == 1:
+        # Controlled deceleration + resume
+        slow_len = int(rng.uniform(5, 12))
+        for i in range(onset, min(onset + slow_len, T)):
+            ep["action"][i] *= rng.uniform(0.30, 0.55)
+
+    else:
+        # Minor drift well below failure threshold
+        drift     = rng.uniform(0.01, 0.04)
+        direction = rng.normal(1.0, 0.2, D)
+        for i in range(onset, T):
+            progress         = (i - onset) / max(T - onset, 1)
+            ep["action"][i] += drift * progress * direction
+
+    _sync(ep)
+    return ep, "nominal", None
 
 
 INJECTORS = {
@@ -221,6 +340,9 @@ INJECTORS = {
     "overcorrect":          inject_overcorrect,
     "nominal":              None,   # clean episode, no injection
 }
+
+# Fraction of the nominal budget to fill with hard negatives (borderline cases)
+HARD_NEG_FRACTION = 0.30
 
 
 # ── Feature extraction ────────────────────────────────────────────────────────
@@ -281,9 +403,19 @@ def extract_episode_features(episode_dict: dict) -> np.ndarray:
 def generate_benchmark(n_per_class: int = 500,
                        dataset_name: str = "lerobot/pusht",
                        output_dir: str = None,
-                       seed: int = 42) -> pd.DataFrame:
+                       seed: int = 42,
+                       hard_neg_fraction: float = HARD_NEG_FRACTION) -> pd.DataFrame:
     """
     Generate a balanced benchmark dataset with n_per_class episodes per failure class.
+
+    Key design choices vs v1.0:
+      - Every injection call gets its own RandomState so parameters are
+        drawn fresh for every episode (no fixed 3.2× spike, no fixed 42 seed
+        inside injectors). This prevents the model from memorising injection
+        signatures instead of learning failure patterns.
+      - hard_neg_fraction of the nominal budget is filled with hard negatives —
+        episodes that look superficially like failures but are labelled nominal.
+        Forces the model to learn actual failure patterns not just magnitude.
 
     Saves:
       benchmark/data/train.parquet
@@ -307,19 +439,35 @@ def generate_benchmark(n_per_class: int = 500,
         print(f"  Generating {n_per_class} × {failure_class}...")
         generated = 0
         attempts  = 0
-        while generated < n_per_class and attempts < n_per_class * 3:
+
+        # For nominal class: reserve hard_neg_fraction for hard negatives
+        hard_neg_budget = (
+            int(n_per_class * hard_neg_fraction)
+            if failure_class == "nominal" else 0
+        )
+        clean_budget = n_per_class - hard_neg_budget
+
+        while generated < n_per_class and attempts < n_per_class * 5:
             attempts += 1
-            base_ep = base_eps[rng.randint(len(base_eps))]
+            base_ep     = base_eps[rng.randint(len(base_eps))]
+            ep_rng      = np.random.RandomState(int(rng.randint(1_000_000)))
 
             try:
-                if injector is None:
-                    ep_dict          = _copy_ep(base_ep)
-                    label            = "nominal"
-                    failure_timestep = None
+                if failure_class == "nominal":
+                    if generated < clean_budget:
+                        # Standard clean episode
+                        ep_dict, label, failure_timestep = (
+                            _copy_ep(base_ep), "nominal", None
+                        )
+                    else:
+                        # Hard negative: looks like failure, label is nominal
+                        ep_dict, label, failure_timestep = (
+                            generate_hard_negative(base_ep, rng=ep_rng)
+                        )
                 else:
-                    ep_dict, label, failure_timestep = injector(base_ep)
+                    # Randomised injection — different parameters every episode
+                    ep_dict, label, failure_timestep = injector(base_ep, rng=ep_rng)
 
-                # Extract episode-level features for classification
                 feat_vec = extract_episode_features(ep_dict)
 
                 all_records.append({
@@ -328,25 +476,28 @@ def generate_benchmark(n_per_class: int = 500,
                     "failure_timestep":  failure_timestep,
                     "n_steps":           len(ep_dict["action"]),
                     "features":          feat_vec.tolist(),
-                    # Store raw state sequence so evaluate.py can run step-level model
                     "state_seq":         ep_dict["state"].tolist(),
                     "synthetic":         True,
+                    "hard_negative":     (failure_class == "nominal"
+                                         and generated >= clean_budget),
                     "base_dataset":      base_ep.get("source", dataset_name),
                 })
                 generated += 1
 
-            except Exception as e:
-                continue   # skip malformed episodes
+            except Exception:
+                continue
 
-        print(f"    → {generated} episodes generated")
+        print(f"    → {generated} episodes  "
+              f"({hard_neg_budget} hard negatives)" if hard_neg_budget else
+              f"    → {generated} episodes")
 
     df = pd.DataFrame(all_records)
 
     # 80/20 train/test split — stratified by class
     train_parts, test_parts = [], []
     for cls in df["failure_class"].unique():
-        cls_df     = df[df["failure_class"] == cls].sample(frac=1, random_state=seed)
-        split_at   = int(len(cls_df) * 0.8)
+        cls_df   = df[df["failure_class"] == cls].sample(frac=1, random_state=seed)
+        split_at = int(len(cls_df) * 0.8)
         train_parts.append(cls_df.iloc[:split_at])
         test_parts.append(cls_df.iloc[split_at:])
 
@@ -356,29 +507,37 @@ def generate_benchmark(n_per_class: int = 500,
     train.to_parquet(f"{output_dir}/train.parquet", index=False)
     test.to_parquet(f"{output_dir}/test.parquet",  index=False)
 
+    n_hard = int(df["hard_negative"].sum()) if "hard_negative" in df else 0
     metadata = {
-        "name":           "Haptal Robotics Failure Benchmark v1.0",
-        "description":    (
-            "Synthetic failure detection benchmark for robot training data "
-            "quality assessment. Built on real LeRobot manipulation trajectories "
-            "with physics-based failure injection."
+        "name":              "Haptal Robotics Failure Benchmark v1.1",
+        "description":       (
+            "Synthetic failure detection benchmark for evaluating robot training "
+            "data quality. Built on real LeRobot manipulation trajectories with "
+            "randomised physics-based failure injection and hard negative examples."
         ),
-        "classes":        list(INJECTORS.keys()),
-        "n_per_class":    n_per_class,
-        "total_episodes": len(df),
-        "train_episodes": len(train),
-        "test_episodes":  len(test),
-        "base_datasets":  [dataset_name],
-        "feature_dim":    len(all_records[0]["features"]) if all_records else 0,
-        "version":        "1.0.0",
+        "classes":           list(INJECTORS.keys()),
+        "n_per_class":       n_per_class,
+        "total_episodes":    len(df),
+        "train_episodes":    len(train),
+        "test_episodes":     len(test),
+        "hard_negatives":    n_hard,
+        "hard_neg_fraction": hard_neg_fraction,
+        "base_datasets":     [dataset_name],
+        "feature_dim":       len(all_records[0]["features"]) if all_records else 0,
+        "version":           "1.1.0",
+        "changes_vs_v1":     [
+            "Randomised injection magnitudes, timing, duration per episode",
+            f"{hard_neg_fraction:.0%} of nominal class are hard negatives",
+            "Per-episode RandomState — no fixed seeds inside injectors",
+        ],
     }
 
     with open(f"{output_dir}/metadata.json", "w") as f:
         json.dump(metadata, f, indent=2)
 
     print(f"\n{'='*50}")
-    print(f"  Benchmark generated")
-    print(f"  Total : {len(df):,} episodes")
+    print(f"  Benchmark v1.1 generated")
+    print(f"  Total : {len(df):,} episodes  ({n_hard} hard negatives)")
     print(f"  Train : {len(train):,}  |  Test : {len(test):,}")
     print(f"  Classes: {list(INJECTORS.keys())}")
     print(f"  Saved to: {output_dir}/")
@@ -390,13 +549,16 @@ def generate_benchmark(n_per_class: int = 500,
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Haptal failure injection benchmark")
-    parser.add_argument("--n-per-class", type=int,  default=500,
+    parser.add_argument("--n-per-class",       type=int,   default=500,
                         help="Episodes per failure class (default: 500)")
-    parser.add_argument("--dataset",     type=str,  default="lerobot/pusht",
+    parser.add_argument("--dataset",           type=str,   default="lerobot/pusht",
                         help="Base LeRobot dataset (default: lerobot/pusht)")
-    parser.add_argument("--output-dir",  type=str,  default=None,
+    parser.add_argument("--output-dir",        type=str,   default=None,
                         help="Output directory (default: benchmark/data/)")
-    parser.add_argument("--seed",        type=int,  default=42)
+    parser.add_argument("--seed",              type=int,   default=42)
+    parser.add_argument("--hard-neg-fraction", type=float, default=HARD_NEG_FRACTION,
+                        help=f"Fraction of nominal budget used for hard negatives "
+                             f"(default: {HARD_NEG_FRACTION})")
     args = parser.parse_args()
 
     generate_benchmark(
@@ -404,4 +566,5 @@ if __name__ == "__main__":
         dataset_name=args.dataset,
         output_dir=args.output_dir,
         seed=args.seed,
+        hard_neg_fraction=args.hard_neg_fraction,
     )

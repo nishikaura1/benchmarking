@@ -69,17 +69,87 @@ def episode_to_haptal_features(row) -> np.ndarray:
     return np.array(feat, dtype=np.float32)
 
 
-# ── Evaluation ────────────────────────────────────────────────────────────────
+# ── Cross-dataset evaluation ──────────────────────────────────────────────────
 
-def evaluate_benchmark(test_path: str = None, save: bool = True) -> dict:
+def evaluate_cross_dataset(trained_rf,
+                           trained_scaler,
+                           trained_classes: list,
+                           held_out_dataset: str = "lerobot/xarm_lift_medium_replay",
+                           n_per_class: int = 100,
+                           seed: int = 42) -> dict:
+    """
+    Fix 2 — Cross-dataset validation.
+
+    Train on pusht (benchmark/data/train.parquet).
+    Test on a completely different robot dataset by generating fresh
+    synthetic failures from that dataset's episodes.
+
+    If accuracy drops more than 15% vs in-distribution test, the model is
+    overfitting to the training dataset's feature distribution.
+
+    Returns a dict with cross_macro_f1, cross_accuracy, and the gap.
+    """
+    from benchmark.failure_injector import generate_benchmark
+    import tempfile
+
+    print(f"\n{'='*58}")
+    print(f"  CROSS-DATASET EVALUATION")
+    print(f"  Train: lerobot/pusht  →  Test: {held_out_dataset}")
+    print(f"{'='*58}")
+
+    # Generate fresh benchmark from the held-out dataset in a temp dir
+    with tempfile.TemporaryDirectory() as tmp:
+        try:
+            generate_benchmark(
+                n_per_class=n_per_class,
+                dataset_name=held_out_dataset,
+                output_dir=tmp,
+                seed=seed,
+            )
+            ood_test = pd.read_parquet(f"{tmp}/test.parquet")
+        except Exception as e:
+            print(f"  ⚠️  Could not load {held_out_dataset}: {e}")
+            print(f"  Skipping cross-dataset evaluation.")
+            return {}
+
+    print(f"  OOD test set: {len(ood_test):,} episodes from {held_out_dataset}")
+
+    X_ood = np.array([episode_to_haptal_features(r) for _, r in ood_test.iterrows()])
+    y_ood = ood_test["failure_class"].values
+
+    # Align classes — OOD set may have same class names
+    X_ood_sc  = trained_scaler.transform(X_ood)
+    y_ood_pred = trained_rf.predict(X_ood_sc)
+
+    cross_macro_f1 = round(float(
+        f1_score(y_ood, y_ood_pred, average="macro",
+                 labels=trained_classes, zero_division=0)
+    ), 4)
+    cross_accuracy = round(float((y_ood_pred == y_ood).mean()), 4)
+
+    print(f"\n  Cross-dataset macro F1 : {cross_macro_f1:.4f}")
+    print(f"  Cross-dataset accuracy : {cross_accuracy:.4f}")
+
+    return {
+        "held_out_dataset": held_out_dataset,
+        "n_ood_episodes":   len(ood_test),
+        "cross_macro_f1":   cross_macro_f1,
+        "cross_accuracy":   cross_accuracy,
+    }
+
+
+def evaluate_benchmark(test_path: str = None,
+                       save: bool = True,
+                       cross_dataset: bool = True) -> dict:
     """
     Evaluate Haptal features on the failure benchmark.
 
     Approach:
       1. Extract 68-dim Haptal step features for every episode → aggregate to 204-dim
       2. Train an episode-level RF on benchmark/data/train.parquet
-      3. Evaluate on benchmark/data/test.parquet
-      4. Report per-class F1, macro F1, accuracy, Cohen's Kappa
+      3. Evaluate on benchmark/data/test.parquet  (in-distribution)
+      4. Evaluate on a held-out dataset           (cross-dataset generalisation)
+      5. Report per-class F1, macro F1, accuracy, Cohen's Kappa, and the OOD gap
     """
     if test_path is None:
         test_path = str(DATA_DIR / "test.parquet")
@@ -150,7 +220,7 @@ def evaluate_benchmark(test_path: str = None, save: bool = True) -> dict:
 
     # ── Print results ─────────────────────────────────────────────────────────
     print(f"\n{'='*58}")
-    print(f"  HAPTAL BENCHMARK RESULTS")
+    print(f"  HAPTAL BENCHMARK RESULTS  (in-distribution)")
     print(f"  {model_name[:55]}")
     print(f"  Test: {len(test):,} episodes · {len(classes)} classes")
     print(f"{'='*58}")
@@ -179,30 +249,62 @@ def evaluate_benchmark(test_path: str = None, save: bool = True) -> dict:
         print("  " + f"{cls[:11]:<12}" + "".join(f"{cm[i,j]:>9}" for j in range(len(classes))))
     print()
 
+    # ── Cross-dataset evaluation ──────────────────────────────────────────────
+    ood_results = {}
+    if cross_dataset:
+        ood_results = evaluate_cross_dataset(
+            trained_rf=rf,
+            trained_scaler=scaler,
+            trained_classes=classes,
+        )
+        if ood_results:
+            ood_f1  = ood_results["cross_macro_f1"]
+            ood_acc = ood_results["cross_accuracy"]
+            gap_f1  = round(macro_f1 - ood_f1, 4)
+            gap_acc = round(accuracy - ood_acc, 4)
+            ood_results["generalisation_gap_macro_f1"] = gap_f1
+            ood_results["generalisation_gap_accuracy"]  = gap_acc
+
+            print(f"\n  {'─'*58}")
+            print(f"  GENERALISATION GAP  (in-dist vs OOD)")
+            print(f"  {'─'*58}")
+            print(f"  In-dist  macro F1 : {macro_f1:.4f}   accuracy: {accuracy:.4f}")
+            print(f"  OOD      macro F1 : {ood_f1:.4f}   accuracy: {ood_acc:.4f}")
+            flag = "✅" if gap_f1 <= 0.15 else "⚠️ "
+            print(f"  {flag} Gap (↓ better) : {gap_f1:.4f}  "
+                  f"({'≤15% — good generalisation' if gap_f1 <= 0.15 else '>15% — overfitting to train distribution'})")
+            print(f"  {'─'*58}\n")
+
     # Paper cite line
     paper_cite = (
         f"Using Haptal's physics-informed feature extraction, an episode-level "
         f"RandomForest achieves {macro_f1:.2f} macro-F1 and {accuracy:.1%} accuracy "
-        f"on the Robotics Failure Benchmark v1.0 ({len(test)} held-out episodes, "
+        f"on the Robotics Failure Benchmark v1.1 ({len(test)} held-out episodes, "
         f"{len(classes)} failure classes, Cohen's κ={kappa:.2f})."
     )
+    if ood_results:
+        paper_cite += (
+            f" Cross-dataset macro-F1: {ood_results['cross_macro_f1']:.2f} "
+            f"(generalisation gap: {ood_results.get('generalisation_gap_macro_f1', 'N/A'):.2f})."
+        )
 
     results = {
-        "model":           model_name,
-        "train_episodes":  len(train),
-        "test_episodes":   len(test),
-        "classes":         classes,
-        "accuracy":        accuracy,
-        "macro_f1":        macro_f1,
-        "weighted_f1":     weighted_f1,
-        "cohen_kappa":     kappa,
-        "mean_confidence": mean_conf,
-        "review_rate_pct": review_rate,
-        "per_class":       {c: {"f1": per_class_f1.get(c,0),
-                                "precision": per_class_prec.get(c,0),
-                                "recall": per_class_rec.get(c,0)}
-                            for c in classes},
-        "paper_cite":      paper_cite,
+        "model":              model_name,
+        "train_episodes":     len(train),
+        "test_episodes":      len(test),
+        "classes":            classes,
+        "accuracy":           accuracy,
+        "macro_f1":           macro_f1,
+        "weighted_f1":        weighted_f1,
+        "cohen_kappa":        kappa,
+        "mean_confidence":    mean_conf,
+        "review_rate_pct":    review_rate,
+        "per_class":          {c: {"f1": per_class_f1.get(c,0),
+                                   "precision": per_class_prec.get(c,0),
+                                   "recall": per_class_rec.get(c,0)}
+                               for c in classes},
+        "cross_dataset":      ood_results,
+        "paper_cite":         paper_cite,
     }
 
     if save:
@@ -218,8 +320,14 @@ def evaluate_benchmark(test_path: str = None, save: bool = True) -> dict:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--test-path", type=str, default=None)
-    parser.add_argument("--no-save",   action="store_true")
+    parser.add_argument("--test-path",       type=str,  default=None)
+    parser.add_argument("--no-save",         action="store_true")
+    parser.add_argument("--no-cross-dataset", action="store_true",
+                        help="Skip cross-dataset OOD evaluation")
     args = parser.parse_args()
 
-    evaluate_benchmark(test_path=args.test_path, save=not args.no_save)
+    evaluate_benchmark(
+        test_path=args.test_path,
+        save=not args.no_save,
+        cross_dataset=not args.no_cross_dataset,
+    )
