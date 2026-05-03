@@ -35,7 +35,7 @@ def upload():
                 f"  python huggingface_upload/prepare_upload.py"
             )
 
-    repo_id = "haptal-ai/robotics-failure-benchmark"
+    repo_id = "HaptalAI/robotics-failure-benchmark"
 
     api = HfApi(token=token)
 

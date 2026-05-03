@@ -2,7 +2,7 @@
 license: apache-2.0
 task_categories:
   - robotics
-  - classification
+  - tabular-classification
 tags:
   - robotics
   - failure-detection
