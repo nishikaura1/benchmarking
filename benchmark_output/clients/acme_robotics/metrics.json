@@ -1,0 +1,16 @@
+{
+  "client_id": "acme_robotics",
+  "robot_type": "franka",
+  "n_episodes": 10,
+  "accuracy": 0.02,
+  "review_rate_pct": 12.2,
+  "per_class_f1": {
+    "gripper_event": 0.0,
+    "nominal": 0.0,
+    "overshoot": 0.16,
+    "position_jerk": 0.0,
+    "stuck_joint": 0.0,
+    "velocity_spike": 0.0
+  },
+  "custom_classes": []
+}

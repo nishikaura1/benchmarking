@@ -1,0 +1,14 @@
+{
+  "accuracy": 0.5028,
+  "n_episodes": 85,
+  "n_classes": 10,
+  "review_threshold": 0.3425,
+  "per_class_f1": {
+    "gripper_event": 0.117,
+    "nominal": 0.665,
+    "overshoot": 0.277,
+    "position_jerk": 0.183,
+    "stuck_joint": 0.215,
+    "velocity_spike": 0.212
+  }
+}

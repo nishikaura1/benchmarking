@@ -1,0 +1,16 @@
+{
+  "dataset": "lerobot/xarm_lift_medium_replay",
+  "model": "IsolationForest v0.1",
+  "total_episodes": 500,
+  "failure_episodes": 77,
+  "roc_auc": 0.943,
+  "detection_rate_pct": 92.2,
+  "false_positive_rate_pct": 12.8,
+  "confidence_threshold_quantile": 0.75,
+  "confusion_matrix": {
+    "tp": 71,
+    "fp": 54,
+    "fn": 6,
+    "tn": 369
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "dataset": "Synthetic CLIP Demo",
+  "model": "CLIP-ViT-B/32 + IsolationForest",
+  "modality": "egocentric_vision",
+  "total_episodes": 300,
+  "failure_episodes": 60,
+  "roc_auc": 1.0,
+  "detection_rate_pct": 100.0,
+  "false_positive_rate_pct": 6.2,
+  "confusion_matrix": {
+    "tp": 60,
+    "fp": 15,
+    "fn": 0,
+    "tn": 225
+  },
+  "embedding_dim": 1024
+}

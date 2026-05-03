@@ -1,0 +1,36 @@
+{
+  "client_id": "demo_client",
+  "base_classes": [
+    "nominal",
+    "velocity_spike",
+    "position_jerk",
+    "stuck_joint",
+    "gripper_event",
+    "high_anomaly",
+    "self_collision",
+    "overshoot",
+    "trajectory_deviation",
+    "perception_failure"
+  ],
+  "custom_classes": {
+    "cable_snag": {
+      "description": "Sudden large displacement on terminal joint with gradual drift",
+      "cause": "Cable caught on fixture or gripper cable routing failure",
+      "strategy": "Add cable management hardware; increase clearance in trajectory planner",
+      "added_by": "client"
+    }
+  },
+  "all_classes": [
+    "nominal",
+    "velocity_spike",
+    "position_jerk",
+    "stuck_joint",
+    "gripper_event",
+    "high_anomaly",
+    "self_collision",
+    "overshoot",
+    "trajectory_deviation",
+    "perception_failure",
+    "cable_snag"
+  ]
+}

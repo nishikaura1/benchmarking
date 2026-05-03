@@ -1,0 +1,91 @@
+{
+  "n_episodes": 100,
+  "n_steps": 2500,
+  "avg_kappa": 0.8176,
+  "interpretation": "almost perfect",
+  "pairs": [
+    {
+      "pair": "RF Model vs Rule-based",
+      "kappa": 0.7897,
+      "agreement_pct": 93.6,
+      "n_steps": 2500,
+      "per_class_kappa": {
+        "nominal": 0.895,
+        "overshoot": 0.5,
+        "perception_failure": 0.0,
+        "position_jerk": 0.797,
+        "self_collision": 1.0,
+        "unknown_failure_type": 0.0,
+        "velocity_spike": 0.867
+      },
+      "classes": [
+        "nominal",
+        "overshoot",
+        "perception_failure",
+        "position_jerk",
+        "self_collision",
+        "unknown_failure_type",
+        "velocity_spike"
+      ]
+    },
+    {
+      "pair": "RF Model vs Bootstrap RF",
+      "kappa": 0.7673,
+      "agreement_pct": 92.8,
+      "n_steps": 2500,
+      "per_class_kappa": {
+        "nominal": 0.88,
+        "overshoot": 0.5,
+        "perception_failure": 0.0,
+        "position_jerk": 0.752,
+        "self_collision": 1.0,
+        "unknown_failure_type": 0.0,
+        "velocity_spike": 0.831
+      },
+      "classes": [
+        "nominal",
+        "overshoot",
+        "perception_failure",
+        "position_jerk",
+        "self_collision",
+        "unknown_failure_type",
+        "velocity_spike"
+      ]
+    },
+    {
+      "pair": "Rule-based vs Bootstrap RF",
+      "kappa": 0.8959,
+      "agreement_pct": 97.0,
+      "n_steps": 2500,
+      "per_class_kappa": {
+        "nominal": 0.899,
+        "overshoot": 1.0,
+        "position_jerk": 0.87,
+        "self_collision": 1.0,
+        "velocity_spike": 0.903
+      },
+      "classes": [
+        "nominal",
+        "overshoot",
+        "position_jerk",
+        "self_collision",
+        "velocity_spike"
+      ]
+    }
+  ],
+  "per_class_kappa_A_vs_B": {
+    "nominal": 0.895,
+    "overshoot": 0.5,
+    "perception_failure": 0.0,
+    "position_jerk": 0.797,
+    "self_collision": 1.0,
+    "unknown_failure_type": 0.0,
+    "velocity_spike": 0.867
+  },
+  "weak_classes": [
+    "overshoot",
+    "perception_failure",
+    "unknown_failure_type"
+  ],
+  "yc_summary": "Step-level failure annotation achieves \u03ba=0.82 inter-annotator agreement across 100 robot episodes \u2014 above the medical image annotation benchmark of \u03ba=0.80."
+}

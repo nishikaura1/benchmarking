@@ -1,0 +1,59 @@
+[
+  {
+    "episode_id": "episode_0074",
+    "step": 4,
+    "original_label": "velocity_spike",
+    "corrected_label": "stuck_joint",
+    "original_conf": 0.513,
+    "informativeness": 0.7798,
+    "al_strategy": "uncertainty",
+    "changed": true,
+    "saved_at": "2026-04-29T23:27:34.976587"
+  },
+  {
+    "episode_id": "episode_0074",
+    "step": 3,
+    "original_label": "nominal",
+    "corrected_label": "stuck_joint",
+    "original_conf": 0.59,
+    "informativeness": 0.6937,
+    "al_strategy": "uncertainty",
+    "changed": true,
+    "saved_at": "2026-04-29T23:27:34.976903"
+  },
+  {
+    "episode_id": "episode_0074",
+    "step": 1,
+    "original_label": "velocity_spike",
+    "corrected_label": "position_jerk",
+    "original_conf": 0.591,
+    "informativeness": 0.6829,
+    "al_strategy": "diversity",
+    "changed": true,
+    "saved_at": "2026-04-29T23:27:34.976910"
+  },
+  {
+    "episode_id": "ep_0042",
+    "step": 17,
+    "original_label": "nominal",
+    "corrected_label": "velocity_spike",
+    "reviewer_id": "reviewer_01",
+    "timestamp": "2026-05-01T23:28:22.304627"
+  },
+  {
+    "episode_id": "ep_0043",
+    "step": 9,
+    "original_label": "stuck_joint",
+    "corrected_label": "nominal",
+    "reviewer_id": "reviewer_01",
+    "timestamp": "2026-05-01T23:28:22.307018"
+  },
+  {
+    "episode_id": "ep_0044",
+    "step": 31,
+    "original_label": "nominal",
+    "corrected_label": "position_jerk",
+    "reviewer_id": "reviewer_02",
+    "timestamp": "2026-05-01T23:28:22.308057"
+  }
+]

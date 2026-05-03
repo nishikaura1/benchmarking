@@ -1,0 +1,21 @@
+{
+  "name": "Haptal Robotics Failure Benchmark v1.0",
+  "description": "Synthetic failure detection benchmark for robot training data quality assessment. Built on real LeRobot manipulation trajectories with physics-based failure injection.",
+  "classes": [
+    "grasp_slip",
+    "velocity_spike",
+    "trajectory_deviation",
+    "stuck_joint",
+    "overcorrect",
+    "nominal"
+  ],
+  "n_per_class": 500,
+  "total_episodes": 3000,
+  "train_episodes": 2400,
+  "test_episodes": 600,
+  "base_datasets": [
+    "lerobot/pusht"
+  ],
+  "feature_dim": 204,
+  "version": "1.0.0"
+}

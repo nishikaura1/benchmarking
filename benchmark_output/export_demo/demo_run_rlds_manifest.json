@@ -1,0 +1,91 @@
+{
+  "format": "rlds_haptal_manifest",
+  "haptal_version": "1.0",
+  "n_episodes": 4,
+  "failure_classes": [
+    "nominal",
+    "velocity_spike",
+    "position_jerk",
+    "stuck_joint",
+    "gripper_event",
+    "high_anomaly",
+    "self_collision",
+    "overshoot",
+    "trajectory_deviation",
+    "perception_failure"
+  ],
+  "episodes": [
+    {
+      "episode_id": "ep_000",
+      "n_steps": 120,
+      "quality_score": 0.8423236196592692,
+      "anomaly_score": 0.27644155063176273,
+      "flagged": false,
+      "dominant_failure": "nominal",
+      "step_labels_rle": [
+        {
+          "label": "nominal",
+          "count": 120
+        }
+      ]
+    },
+    {
+      "episode_id": "ep_001",
+      "n_steps": 120,
+      "quality_score": 0.6296944553317333,
+      "anomaly_score": 0.281262301572245,
+      "flagged": false,
+      "dominant_failure": "position_jerk",
+      "step_labels_rle": [
+        {
+          "label": "nominal",
+          "count": 40
+        },
+        {
+          "label": "position_jerk",
+          "count": 12
+        },
+        {
+          "label": "nominal",
+          "count": 68
+        }
+      ]
+    },
+    {
+      "episode_id": "ep_002",
+      "n_steps": 120,
+      "quality_score": 0.6330611796168605,
+      "anomaly_score": 0.17021145217445344,
+      "flagged": false,
+      "dominant_failure": "nominal",
+      "step_labels_rle": [
+        {
+          "label": "nominal",
+          "count": 120
+        }
+      ]
+    },
+    {
+      "episode_id": "ep_003",
+      "n_steps": 120,
+      "quality_score": 0.9139627928008316,
+      "anomaly_score": 0.30282380014384164,
+      "flagged": false,
+      "dominant_failure": "gripper_event",
+      "step_labels_rle": [
+        {
+          "label": "nominal",
+          "count": 40
+        },
+        {
+          "label": "gripper_event",
+          "count": 12
+        },
+        {
+          "label": "nominal",
+          "count": 68
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,52 @@
+{
+  "model": "Haptal episode-level RF  (68-dim step features \u00d7 mean+std+max = 204-dim, n_estimators=300, max_depth=20)",
+  "train_episodes": 2400,
+  "test_episodes": 600,
+  "classes": [
+    "grasp_slip",
+    "nominal",
+    "overcorrect",
+    "stuck_joint",
+    "trajectory_deviation",
+    "velocity_spike"
+  ],
+  "accuracy": 0.9983,
+  "macro_f1": 0.9983,
+  "weighted_f1": 0.9983,
+  "cohen_kappa": 0.998,
+  "mean_confidence": 0.951,
+  "review_rate_pct": 4.5,
+  "per_class": {
+    "grasp_slip": {
+      "f1": 0.995,
+      "precision": 0.9901,
+      "recall": 1.0
+    },
+    "nominal": {
+      "f1": 1.0,
+      "precision": 1.0,
+      "recall": 1.0
+    },
+    "overcorrect": {
+      "f1": 1.0,
+      "precision": 1.0,
+      "recall": 1.0
+    },
+    "stuck_joint": {
+      "f1": 0.995,
+      "precision": 1.0,
+      "recall": 0.99
+    },
+    "trajectory_deviation": {
+      "f1": 1.0,
+      "precision": 1.0,
+      "recall": 1.0
+    },
+    "velocity_spike": {
+      "f1": 1.0,
+      "precision": 1.0,
+      "recall": 1.0
+    }
+  },
+  "paper_cite": "Using Haptal's physics-informed feature extraction, an episode-level RandomForest achieves 1.00 macro-F1 and 99.8% accuracy on the Robotics Failure Benchmark v1.0 (600 held-out episodes, 6 failure classes, Cohen's \u03ba=1.00)."
+}

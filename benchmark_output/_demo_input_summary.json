@@ -1,0 +1,82 @@
+{
+  "pipeline": "RobotAnnotationPipeline v1.1",
+  "input": "_demo_input",
+  "n_episodes": 100,
+  "n_flagged": 25,
+  "flag_rate_pct": 25.0,
+  "anomaly_threshold": 0.5269,
+  "performance": {
+    "roc_auc": 0.6872,
+    "detection_rate_pct": 28.0,
+    "false_positive_rate_pct": 16.0,
+    "confusion_matrix": {
+      "tp": 21,
+      "fp": 4,
+      "fn": 54,
+      "tn": 21
+    },
+    "note": "Validated against ground truth labels from reward signal"
+  },
+  "failure_type_totals": {
+    "nominal": 416,
+    "velocity_spike": 85,
+    "position_jerk": 60,
+    "stuck_joint": 39,
+    "gripper_event": 0,
+    "high_anomaly": 0,
+    "self_collision": 0,
+    "overshoot": 0,
+    "trajectory_deviation": 0,
+    "perception_failure": 0
+  },
+  "quality": {
+    "threshold": 0.65,
+    "mean_quality": 0.5654,
+    "episodes_above_threshold": 7,
+    "pct_training_ready": 7.0,
+    "review_steps": 309,
+    "review_rate_pct": 51.5
+  },
+  "outputs": {
+    "annotated_hdf5": "benchmark_output/_demo_input_annotated.h5",
+    "training_hdf5": "benchmark_output/_demo_input_training.h5",
+    "report_json": "benchmark_output/_demo_input_report.json",
+    "review_queue": "benchmark_output/_demo_input_review_queue.json",
+    "summary_json": "benchmark_output/_demo_input_summary.json"
+  },
+  "models_used": {
+    "anomaly_detection": "IsolationForest (fitted from SOP)",
+    "failure_typing": "RobotAnnotator v1.1 (RF+Platt, 93.7% acc)",
+    "semantic_labels": "SemanticAnnotator v1.0 (RF, 94.9% acc)"
+  },
+  "label_schema": {
+    "task_phase": {
+      "approaching": "Moving toward the target object",
+      "grasping": "End-effector closing around the object",
+      "transporting": "Carrying object to destination",
+      "placing": "Lowering / releasing object at target",
+      "returning": "Moving back toward home/rest pose",
+      "idle": "Minimal movement \u2014 paused or at rest"
+    },
+    "workspace_zone": {
+      "home": "Near the rest/start configuration",
+      "near_object": "Close to the target object",
+      "mid_transit": "In transit between object and target",
+      "near_target": "Close to the placement/goal location",
+      "boundary": "Near the edge of the reachable workspace"
+    },
+    "contact_state": {
+      "no_contact": "End-effector not in contact with object",
+      "pre_grasp": "Approaching, about to make contact",
+      "in_grasp": "Object securely grasped",
+      "releasing": "Opening gripper to release object"
+    },
+    "motion_type": {
+      "stationary": "Joint velocities near zero",
+      "slow_move": "Low-speed coordinated movement",
+      "fast_move": "High-speed transit movement",
+      "decelerating": "Velocity decreasing \u2014 approaching target",
+      "rotating": "Primarily rotational joint motion"
+    }
+  }
+}

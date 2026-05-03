@@ -1,0 +1,35 @@
+[
+  {
+    "id": "a9eb818c",
+    "episode_id": "ep_0042",
+    "step": 17,
+    "original_label": "nominal",
+    "corrected_label": "velocity_spike",
+    "reviewer_id": "reviewer_01",
+    "confidence": 1.0,
+    "timestamp": "2026-05-01T23:28:22.304627",
+    "used_in_retrain": false
+  },
+  {
+    "id": "0eba966b",
+    "episode_id": "ep_0043",
+    "step": 9,
+    "original_label": "stuck_joint",
+    "corrected_label": "nominal",
+    "reviewer_id": "reviewer_01",
+    "confidence": 1.0,
+    "timestamp": "2026-05-01T23:28:22.307018",
+    "used_in_retrain": false
+  },
+  {
+    "id": "20b035b1",
+    "episode_id": "ep_0044",
+    "step": 31,
+    "original_label": "nominal",
+    "corrected_label": "position_jerk",
+    "reviewer_id": "reviewer_02",
+    "confidence": 1.0,
+    "timestamp": "2026-05-01T23:28:22.308057",
+    "used_in_retrain": false
+  }
+]

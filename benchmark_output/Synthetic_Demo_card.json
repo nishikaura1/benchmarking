@@ -1,0 +1,16 @@
+{
+  "dataset": "Synthetic Demo",
+  "model": "IsolationForest v0.1",
+  "total_episodes": 500,
+  "failure_episodes": 100,
+  "roc_auc": 1.0,
+  "detection_rate_pct": 100.0,
+  "false_positive_rate_pct": 6.2,
+  "confidence_threshold_quantile": 0.75,
+  "confusion_matrix": {
+    "tp": 100,
+    "fp": 25,
+    "fn": 0,
+    "tn": 375
+  }
+}

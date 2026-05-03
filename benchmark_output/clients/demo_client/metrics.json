@@ -1,0 +1,16 @@
+{
+  "client_id": "demo_client",
+  "robot_type": "franka",
+  "n_episodes": 20,
+  "accuracy": 0.175,
+  "review_rate_pct": 59.4,
+  "per_class_f1": {
+    "cable_snag": 0.0,
+    "nominal": 0.16,
+    "stuck_joint": 0.343,
+    "velocity_spike": 0.105
+  },
+  "custom_classes": [
+    "cable_snag"
+  ]
+}

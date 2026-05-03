@@ -1,0 +1,36 @@
+{
+  "client_id": "acme_robotics",
+  "base_classes": [
+    "nominal",
+    "velocity_spike",
+    "position_jerk",
+    "stuck_joint",
+    "gripper_event",
+    "high_anomaly",
+    "self_collision",
+    "overshoot",
+    "trajectory_deviation",
+    "perception_failure"
+  ],
+  "custom_classes": {
+    "weld_stutter": {
+      "description": "Oscillation on wrist joints (5/6) during final approach",
+      "cause": "Resonance between weld torch vibration and wrist servo response",
+      "strategy": "Add notch filter at 8Hz to wrist joint PD controller; reduce approach velocity to 40%",
+      "added_by": "client"
+    }
+  },
+  "all_classes": [
+    "nominal",
+    "velocity_spike",
+    "position_jerk",
+    "stuck_joint",
+    "gripper_event",
+    "high_anomaly",
+    "self_collision",
+    "overshoot",
+    "trajectory_deviation",
+    "perception_failure",
+    "weld_stutter"
+  ]
+}

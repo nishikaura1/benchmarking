@@ -1,0 +1,28 @@
+{
+  "client_id": "biotech_labs",
+  "base_classes": [
+    "nominal",
+    "velocity_spike",
+    "position_jerk",
+    "stuck_joint",
+    "gripper_event",
+    "high_anomaly",
+    "self_collision",
+    "overshoot",
+    "trajectory_deviation",
+    "perception_failure"
+  ],
+  "custom_classes": {},
+  "all_classes": [
+    "nominal",
+    "velocity_spike",
+    "position_jerk",
+    "stuck_joint",
+    "gripper_event",
+    "high_anomaly",
+    "self_collision",
+    "overshoot",
+    "trajectory_deviation",
+    "perception_failure"
+  ]
+}
