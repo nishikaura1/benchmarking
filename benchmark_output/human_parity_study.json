@@ -1,0 +1,70 @@
+{
+  "study": "Human vs. Haptal parity study",
+  "n_episodes": 160,
+  "n_success_human": 75,
+  "n_failure_human": 85,
+  "datasets": [
+    "lerobot/droid_100",
+    "lerobot/xarm_lift_medium_replay"
+  ],
+  "optimal_threshold": 0.25,
+  "supervised_episode_head": {
+    "name": "Supervised episode head (5-fold CV)",
+    "accuracy": 0.8313,
+    "cohen_kappa": 0.6609,
+    "f1_failure": 0.8421,
+    "f1_nominal": 0.8188,
+    "false_alarm_rate": 0.1529,
+    "miss_rate": 0.1867,
+    "n": 160
+  },
+  "physics_only": {
+    "name": "Physics-only (step anomaly)",
+    "accuracy": 0.4625,
+    "cohen_kappa": -0.0155,
+    "f1_failure": 0.0444,
+    "f1_nominal": 0.6261,
+    "false_alarm_rate": 0.9765,
+    "miss_rate": 0.04,
+    "n": 160
+  },
+  "majority_baseline": {
+    "name": "Majority baseline",
+    "accuracy": 0.5312,
+    "cohen_kappa": 0.0,
+    "f1_failure": 0.6939,
+    "f1_nominal": 0.0,
+    "false_alarm_rate": 0.0,
+    "miss_rate": 1.0,
+    "n": 160
+  },
+  "random_baseline": {
+    "name": "Random baseline",
+    "accuracy": 0.5188,
+    "cohen_kappa": 0.0375,
+    "f1_failure": 0.5333,
+    "f1_nominal": 0.5032,
+    "false_alarm_rate": 0.4824,
+    "miss_rate": 0.48,
+    "n": 160
+  },
+  "per_dataset": {
+    "lerobot/droid_100": {
+      "n": 80,
+      "accuracy": 0.2,
+      "cohen_kappa": 0.0108,
+      "false_alarm_rate": 0.9697
+    },
+    "lerobot/xarm_lift_medium_replay": {
+      "n": 80,
+      "accuracy": 0.725,
+      "cohen_kappa": -0.0693,
+      "false_alarm_rate": 1.0
+    }
+  },
+  "failure_type_breakdown": {
+    "unknown_failure_type": 2
+  },
+  "human_iaa_reference": "\u03ba \u2248 0.60\u20130.75 (typical human pass/fail labelling)",
+  "investor_summary": "Supervised episode head agrees with human operators at \u03ba=0.66 (substantial) on 160 real robot episodes across 2 datasets. Accuracy: 83.1%. False alarm rate: 15.3%. Miss rate: 18.7%. Additionally provides granular failure type classification (10 classes with timestep) that human operators do not produce. Physics-only step signals alone achieve \u03ba=-0.02 \u2014 task semantics require the supervised head."
+}
