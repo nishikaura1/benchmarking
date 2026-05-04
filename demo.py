@@ -16,21 +16,48 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 OUTPUT_DIR = Path("benchmark_output")
 
+STATIC_DIR = Path(__file__).parent / "static"
+LOGO_DARK  = STATIC_DIR / "haptal_dark.png"
+LOGO_LIGHT = STATIC_DIR / "haptal_light.png"
+
+# Brand colours extracted from logo
+TEAL   = "#2a9d8f"
+TEAL_D = "#21867a"   # darker teal for hover / borders
+
 st.set_page_config(
     page_title="Haptal — Robot Data Quality",
+    page_icon=str(LOGO_DARK) if LOGO_DARK.exists() else "⚡",
     layout="wide",
     initial_sidebar_state="collapsed",
 )
 
-st.markdown("""
+st.markdown(f"""
 <style>
-  div[data-testid="stToolbar"]      { display: none; }
-  section[data-testid="stSidebar"]  { display: none; }
-  .block-container { padding-top: 1.4rem; padding-bottom: 2rem; }
-  /* Dataset card selected state */
-  div[data-testid="stButton"] > button[kind="primary"] {
-    border: 2px solid #6366f1 !important;
-  }
+  div[data-testid="stToolbar"]      {{ display: none; }}
+  section[data-testid="stSidebar"]  {{ display: none; }}
+  .block-container {{ padding-top: 1.2rem; padding-bottom: 2rem; }}
+
+  /* Primary button → Haptal teal */
+  button[kind="primary"] {{
+    background-color: {TEAL} !important;
+    border-color:     {TEAL} !important;
+    color: #fff !important;
+  }}
+  button[kind="primary"]:hover {{
+    background-color: {TEAL_D} !important;
+    border-color:     {TEAL_D} !important;
+  }}
+
+  /* Progress bars → teal */
+  div[data-testid="stProgress"] > div > div {{
+    background-color: {TEAL} !important;
+  }}
+
+  /* Metric value → slightly brighter */
+  div[data-testid="metric-container"] [data-testid="metric-value"] {{
+    font-size: 1.6rem !important;
+    font-weight: 700 !important;
+  }}
 </style>
 """, unsafe_allow_html=True)
 
@@ -142,7 +169,7 @@ def run_inference(_ann, fname):
     return rows
 
 COLORS = {
-    "nominal":              "#22c55e",
+    "nominal":              "#2a9d8f",
     "velocity_spike":       "#ef4444",
     "position_jerk":        "#f97316",
     "stuck_joint":          "#a855f7",
@@ -162,7 +189,7 @@ FAILURE_CLASSES = [
     "self_collision", "overshoot", "perception_failure", "unknown_failure_type",
 ]
 
-PALETTE = ["#6366f1", "#38bdf8", "#f87171", "#86efac",
+PALETTE = ["#2a9d8f", "#38bdf8", "#f87171", "#86efac",
            "#fcd34d", "#c084fc", "#34d399", "#f97316"]
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -171,16 +198,28 @@ PALETTE = ["#6366f1", "#38bdf8", "#f87171", "#86efac",
 
 ann = load_model()
 
-col_h, col_m = st.columns([3, 1])
-with col_h:
-    st.markdown("## Haptal — Robot Training Data Quality")
-    st.caption("Automated episode annotation · failure detection · review queue")
+col_logo, col_title, col_m = st.columns([1, 3, 1])
+with col_logo:
+    if LOGO_DARK.exists():
+        st.image(str(LOGO_DARK), width=160)
+    else:
+        st.markdown("## Haptal.")
+with col_title:
+    st.markdown(
+        "<div style='padding-top:14px;'>"
+        "<span style='font-size:1.15rem; font-weight:600; color:#e6edf3;'>"
+        "Robot Training Data Quality</span><br>"
+        "<span style='font-size:.82rem; color:#8b949e;'>"
+        "Automated episode annotation · failure detection · review queue"
+        "</span></div>",
+        unsafe_allow_html=True,
+    )
 with col_m:
     if ann:
-        st.success("✓ Model loaded", icon="✅")
-        st.caption("RobotAnnotator v1.1 · calibrated RF · 89.9% val acc")
+        st.success("Model loaded", icon="✅")
+        st.caption("v1.1 · calibrated RF · 89.9% val acc")
     else:
-        st.warning("Model not found — synthetic fallback active", icon="⚠️")
+        st.warning("Fallback mode", icon="⚠️")
 
 st.divider()
 
@@ -496,7 +535,7 @@ with tabs[2]:
             fig_qc = go.Figure(go.Bar(
                 x=list(range(T_q)), y=item["step_confs"],
                 marker=dict(
-                    color=["#22c55e" if l == "nominal" else "#ef4444"
+                    color=["#2a9d8f" if l == "nominal" else "#ef4444"
                            for l in item["step_labels"]],
                     opacity=0.70,
                 ),
