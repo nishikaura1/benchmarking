@@ -1,5 +1,5 @@
 """
-Haptal — Robot Training Data Quality
+Haptal — Robot Training Data Quality Demo
 Run: streamlit run demo.py
 """
 
@@ -18,9 +18,15 @@ sys.path.insert(0, str(ROOT_DIR))
 OUTPUT_DIR = ROOT_DIR / "benchmark_output"
 STATIC_DIR = ROOT_DIR / "static"
 
-TEAL = "#2a9d8f"
-
-# ─── Page config ─────────────────────────────────────────────────────────────
+# ── Brand ─────────────────────────────────────────────────────────────────────
+TEAL   = "#2a9d8f"
+BG     = "#0b0d10"
+PANEL  = "#111318"
+BORDER = "#1e2128"
+T1     = "#f0f2f5"   # primary text
+T2     = "#6b7280"   # secondary text
+RED    = "#ef4444"
+AMBER  = "#f59e0b"
 
 st.set_page_config(
     page_title="Haptal",
@@ -30,72 +36,184 @@ st.set_page_config(
 
 st.markdown(f"""
 <style>
-  /* Hide Streamlit chrome */
-  div[data-testid="stToolbar"]     {{ display: none; }}
-  #MainMenu                        {{ display: none; }}
-  footer                           {{ display: none; }}
+  /* ── Reset chrome ── */
+  div[data-testid="stToolbar"], #MainMenu, footer {{ display: none !important; }}
 
-  /* Tighten sidebar */
-  section[data-testid="stSidebar"] > div {{ padding-top: 1.6rem; }}
-
-  /* Main content padding */
-  .block-container {{ padding-top: 2rem; max-width: 1100px; }}
-
-  /* Status pill */
-  .pill {{
-    display: inline-block;
-    padding: 2px 10px;
-    border-radius: 4px;
-    font-size: .78rem;
-    font-weight: 600;
-    letter-spacing: .03em;
+  /* ── App background ── */
+  .stApp {{ background: {BG}; }}
+  section[data-testid="stSidebar"] > div:first-child {{
+    background: {PANEL};
+    border-right: 1px solid {BORDER};
+    padding-top: 2rem;
   }}
-  .pill-pass   {{ background: #0d2e2a; color: {TEAL}; }}
-  .pill-fail   {{ background: #2e0d0d; color: #f87171; }}
-  .pill-review {{ background: #2e220d; color: #fbbf24; }}
 
-  /* Section heading */
-  .section-label {{
+  /* ── Main content ── */
+  .block-container {{
+    padding: 2.4rem 3rem 3rem;
+    max-width: 1080px;
+  }}
+
+  /* ── Typography ── */
+  h1, h2, h3, h4 {{ color: {T1} !important; font-weight: 700; letter-spacing: -.02em; }}
+  p, li {{ color: {T2}; }}
+  label {{ color: {T2} !important; }}
+
+  /* ── Step indicator ── */
+  .steps {{
+    display: flex;
+    align-items: center;
+    gap: 0;
+    margin-bottom: 2.8rem;
+  }}
+  .step-item {{
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    position: relative;
+    z-index: 1;
+  }}
+  .step-dot {{
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    border: 2px solid {BORDER};
+    background: {PANEL};
+    display: flex; align-items: center; justify-content: center;
+    font-size: .7rem; font-weight: 700;
+    color: {T2};
+    transition: all .2s;
+  }}
+  .step-dot.active {{
+    border-color: {TEAL};
+    background: {TEAL};
+    color: #fff;
+  }}
+  .step-dot.done {{
+    border-color: {TEAL};
+    background: transparent;
+    color: {TEAL};
+  }}
+  .step-label {{
     font-size: .7rem;
-    font-weight: 700;
-    letter-spacing: .1em;
+    font-weight: 600;
+    letter-spacing: .06em;
     text-transform: uppercase;
-    color: #4b5563;
-    margin-bottom: .5rem;
+    color: {T2};
+    white-space: nowrap;
+  }}
+  .step-label.active {{ color: {T1}; }}
+  .step-line {{
+    flex: 1;
+    height: 1px;
+    background: {BORDER};
+    margin: 0 12px;
+    margin-bottom: 22px;
+  }}
+  .step-line.done {{ background: {TEAL}; opacity: .35; }}
+
+  /* ── Status badge ── */
+  .badge {{
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-size: .72rem;
+    font-weight: 700;
+    letter-spacing: .05em;
+  }}
+  .badge-pass   {{ background: rgba(42,157,143,.12); color: {TEAL}; }}
+  .badge-fail   {{ background: rgba(239,68,68,.12);  color: {RED};  }}
+  .badge-review {{ background: rgba(245,158,11,.12); color: {AMBER};}}
+
+  /* ── Metric strip ── */
+  .metric-strip {{
+    display: flex; gap: 2px;
+    background: {BORDER};
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 2rem;
+  }}
+  .metric-cell {{
+    flex: 1;
+    background: {PANEL};
+    padding: 16px 20px;
+  }}
+  .metric-label {{
+    font-size: .68rem; font-weight: 700;
+    letter-spacing: .08em; text-transform: uppercase;
+    color: {T2}; margin-bottom: 4px;
+  }}
+  .metric-value {{
+    font-size: 1.5rem; font-weight: 700;
+    color: {T1}; letter-spacing: -.02em;
+  }}
+  .metric-sub {{
+    font-size: .75rem; color: {T2}; margin-top: 2px;
   }}
 
-  /* Primary button → teal */
-  button[kind="primary"] {{
+  /* ── Nav buttons ── */
+  div[data-testid="stButton"] button {{
+    background: transparent !important;
+    border: 1px solid {BORDER} !important;
+    color: {T2} !important;
+    border-radius: 6px !important;
+    font-size: .82rem !important;
+    font-weight: 600 !important;
+    padding: 6px 18px !important;
+    transition: all .15s !important;
+  }}
+  div[data-testid="stButton"] button:hover {{
+    border-color: {TEAL} !important;
+    color: {TEAL} !important;
+  }}
+  div[data-testid="stButton"] button[kind="primary"] {{
     background: {TEAL} !important;
     border-color: {TEAL} !important;
+    color: #fff !important;
   }}
 
-  /* Clean up metric */
-  div[data-testid="metric-container"] {{
-    border: 1px solid #1f2937;
-    border-radius: 8px;
-    padding: 14px 18px;
+  /* ── Sidebar elements ── */
+  div[data-testid="stRadio"] label {{
+    font-size: .85rem !important;
+    color: {T2} !important;
   }}
+  div[data-testid="stRadio"] label:has(input:checked) {{
+    color: {T1} !important;
+  }}
+
+  /* ── Dataframe ── */
+  div[data-testid="stDataFrame"] iframe {{
+    border-radius: 8px !important;
+  }}
+  div[data-testid="stDataFrame"] {{
+    border: 1px solid {BORDER};
+    border-radius: 8px;
+    overflow: hidden;
+  }}
+
+  /* ── Divider ── */
+  hr {{ border-color: {BORDER} !important; }}
 </style>
 """, unsafe_allow_html=True)
 
-# ─── Dataset registry ─────────────────────────────────────────────────────────
-
+# ── Data registry ─────────────────────────────────────────────────────────────
 DATASETS = {
     "xArm Push": {
         "file":  "lerobot_xarm_push_medium_replay_episodes.pkl",
-        "robot": "xArm · 4 DOF · object pushing",
-        "note":  "Mix of clean episodes and failures. Velocity spikes, self-collision.",
+        "robot": "xArm · 4 DOF",
+        "task":  "Object pushing",
+        "note":  "Mix of nominal and failure episodes",
     },
     "ALOHA Insertion": {
         "file":  "lerobot_aloha_sim_insertion_human_episodes.pkl",
-        "robot": "ALOHA bimanual · 14 DOF · peg insertion",
-        "note":  "Different platform from training data. Stuck joints, gripper failures.",
+        "robot": "ALOHA · 14 DOF",
+        "task":  "Precision peg insertion",
+        "note":  "Bimanual — different platform from training data",
     },
     "DROID-100": {
         "file":  "lerobot_droid_100_episodes.pkl",
-        "robot": "Franka Panda · 7 DOF · diverse manipulation",
-        "note":  "Real-world data. Lower model confidence triggers review queue.",
+        "robot": "Franka Panda · 7 DOF",
+        "task":  "Diverse real-world manipulation",
+        "note":  "Lower model confidence — triggers review queue",
     },
 }
 
@@ -105,26 +223,25 @@ FAILURE_CLASSES = [
     "self_collision", "overshoot", "perception_failure", "unknown_failure_type",
 ]
 
-COLORS = {
+FAIL_COLORS = {
     "nominal":              TEAL,
-    "velocity_spike":       "#ef4444",
+    "velocity_spike":       RED,
     "position_jerk":        "#f97316",
     "stuck_joint":          "#a855f7",
-    "gripper_event":        "#eab308",
+    "gripper_event":        AMBER,
     "trajectory_deviation": "#ec4899",
     "overcorrect":          "#14b8a6",
     "self_collision":       "#f43f5e",
     "overshoot":            "#fb923c",
     "perception_failure":   "#8b5cf6",
-    "unknown_failure_type": "#6b7280",
-    "high_anomaly":         "#6b7280",
+    "unknown_failure_type": T2,
+    "high_anomaly":         T2,
 }
 
-TRACE_PALETTE = [TEAL, "#38bdf8", "#f87171", "#a78bfa"]
+TRACE_PAL = [TEAL, "#60a5fa", "#f87171", "#c084fc"]
 
-# ─── Load model + data ────────────────────────────────────────────────────────
-
-@st.cache_resource(show_spinner="Loading model…")
+# ── Model + data ──────────────────────────────────────────────────────────────
+@st.cache_resource(show_spinner=False)
 def load_model():
     try:
         from annotation_model import RobotAnnotator
@@ -190,362 +307,321 @@ def run_inference(_ann, fname):
         })
     return rows
 
-def pill(text, kind):
-    return f'<span class="pill pill-{kind}">{text}</span>'
+def badge_html(status):
+    cls = {"PASS": "pass", "FAIL": "fail", "REVIEW": "review"}.get(status, "review")
+    return f'<span class="badge badge-{cls}">{status}</span>'
 
-def status_pill(r):
-    if r["needs_review"]:
-        return pill("REVIEW", "review")
-    if r["use_for_policy"]:
-        return pill("PASS", "pass")
-    return pill("FAIL", "fail")
+def metric_html(label, value, sub=""):
+    return f"""
+    <div class="metric-cell">
+      <div class="metric-label">{label}</div>
+      <div class="metric-value">{value}</div>
+      {"<div class='metric-sub'>" + sub + "</div>" if sub else ""}
+    </div>"""
 
-# ─── Sidebar ─────────────────────────────────────────────────────────────────
+# ── Session state ─────────────────────────────────────────────────────────────
+if "step" not in st.session_state:
+    st.session_state["step"] = 0
+if "ds" not in st.session_state:
+    st.session_state["ds"] = "xArm Push"
 
+# ── Sidebar ───────────────────────────────────────────────────────────────────
 ann = load_model()
 
 with st.sidebar:
-    logo = STATIC_DIR / "haptal_dark.png"
-    if logo.exists():
-        st.image(str(logo), width=130)
+    logo_path = STATIC_DIR / "haptal_dark.png"
+    if logo_path.exists():
+        st.image(str(logo_path), width=120)
     else:
-        st.markdown("### Haptal.")
+        st.markdown(f"<span style='font-size:1.4rem;font-weight:800;color:{T1};'>Haptal.</span>",
+                    unsafe_allow_html=True)
 
-    st.markdown("<br>", unsafe_allow_html=True)
-    st.markdown('<div class="section-label">Dataset</div>', unsafe_allow_html=True)
+    st.markdown(f"<div style='height:28px'></div>", unsafe_allow_html=True)
+    st.markdown(f"<div style='font-size:.68rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:{T2};margin-bottom:10px;'>Dataset</div>", unsafe_allow_html=True)
 
     ds_name = st.radio(
-        "dataset",
+        "ds",
         list(DATASETS.keys()),
+        index=list(DATASETS.keys()).index(st.session_state["ds"]),
         label_visibility="collapsed",
     )
-    ds_meta = DATASETS[ds_name]
-    st.caption(ds_meta["robot"])
-    st.caption(ds_meta["note"])
+    if ds_name != st.session_state["ds"]:
+        st.session_state["ds"] = ds_name
+        st.session_state["step"] = 0
+        st.rerun()
 
-    st.markdown("<br>", unsafe_allow_html=True)
-    st.divider()
-    st.markdown('<div class="section-label">Model</div>', unsafe_allow_html=True)
+    meta = DATASETS[ds_name]
+    st.markdown(f"<div style='font-size:.78rem;color:{T2};margin-top:8px;line-height:1.6;'>{meta['robot']}<br>{meta['task']}<br><span style='color:#3a3f4a;'>{meta['note']}</span></div>", unsafe_allow_html=True)
 
-    if ann:
-        st.markdown(f"RobotAnnotator v1.1")
-        st.caption("Calibrated Random Forest")
-        st.caption("Trained: xArm, ALOHA, DROID")
-        st.caption("Val accuracy: 89.9%")
-        st.caption("Brier score: 0.017")
-    else:
-        st.warning("Model not found")
+    st.markdown(f"<div style='height:28px'></div>", unsafe_allow_html=True)
+    st.markdown(f"<hr style='border-color:{BORDER};margin:0 0 16px;'>", unsafe_allow_html=True)
 
-    st.markdown("<br>", unsafe_allow_html=True)
-    st.divider()
-    st.caption("aarav@haptal.ai")
+    st.markdown(f"<div style='font-size:.68rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:{T2};margin-bottom:10px;'>Model</div>", unsafe_allow_html=True)
 
-# ─── Load data ────────────────────────────────────────────────────────────────
+    model_color = TEAL if ann else RED
+    model_text  = "RobotAnnotator v1.1" if ann else "Not loaded"
+    st.markdown(f"""
+    <div style='font-size:.82rem;color:{T1};font-weight:600;'>{model_text}</div>
+    <div style='font-size:.76rem;color:{T2};margin-top:4px;line-height:1.7;'>
+      {"Calibrated Random Forest<br>Val accuracy: 89.9%<br>Brier score: 0.017<br>Trained: xArm · ALOHA · DROID" if ann else "Synthetic fallback active"}
+    </div>
+    """, unsafe_allow_html=True)
 
-results  = run_inference(ann, ds_meta["file"])
-episodes = load_episodes(ds_meta["file"])
+    st.markdown(f"<div style='position:absolute;bottom:24px;left:24px;font-size:.72rem;color:{T2};'>aarav@haptal.ai</div>", unsafe_allow_html=True)
+
+# ── Load data ─────────────────────────────────────────────────────────────────
+results = run_inference(ann, meta["file"])
 
 if not results:
-    st.error(f"Dataset not found: `{ds_meta['file']}`")
+    st.error(f"Dataset not found: {meta['file']}")
     st.stop()
 
 df = pd.DataFrame([{k: v for k, v in r.items()
-                    if k not in ("seq", "step_labels", "step_confs", "failure_counts")}
+                    if k not in ("seq","step_labels","step_confs","failure_counts")}
                    for r in results])
 
-# ─── Main layout ─────────────────────────────────────────────────────────────
-
-# Page header
-st.markdown(f"## {ds_name}")
-st.markdown(
-    f"<span style='color:#6b7280; font-size:.9rem;'>{ds_meta['robot']}</span>",
-    unsafe_allow_html=True,
-)
-st.markdown("<br>", unsafe_allow_html=True)
-
-# ─── Section 1: Raw data ─────────────────────────────────────────────────────
-
-st.markdown('<div class="section-label">Raw data — before annotation</div>', unsafe_allow_html=True)
-st.markdown(
-    "This is what the dataset looks like out of the box. "
-    "No labels. No quality signal. No way to know which episodes to train on.",
-    )
-
-raw_rows = []
-for i, ep in enumerate(episodes[:8]):
-    seq = ep["seq"]
-    vel = np.diff(seq, axis=0)
-    raw_rows.append({
-        "episode":      f"ep_{i:03d}",
-        "steps":        len(seq),
-        "joint_0_mean": round(float(seq[:, 0].mean()), 4),
-        "joint_1_mean": round(float(seq[:, 1].mean()), 4),
-        "vel_max":      round(float(np.abs(vel).max()), 4),
-        "failure_type": "—",
-        "status":       "—",
-    })
-
-st.dataframe(
-    pd.DataFrame(raw_rows),
-    use_container_width=True,
-    hide_index=True,
-    height=280,
-)
-
-st.divider()
-
-# ─── Section 2: Pipeline ──────────────────────────────────────────────────────
-
-st.markdown('<div class="section-label">Pipeline — RobotAnnotator v1.1</div>', unsafe_allow_html=True)
-
-# Summary metrics
 n_total = len(df)
 n_pass  = int(df["use_for_policy"].sum())
 n_fail  = int((~df["use_for_policy"] & ~df["needs_review"]).sum())
 n_rev   = int(df["needs_review"].sum())
 
-m1, m2, m3, m4 = st.columns(4)
-m1.metric("Episodes",        n_total)
-m2.metric("Pass",            n_pass,  delta=f"{round(100*n_pass/n_total)}% of dataset")
-m3.metric("Fail",            n_fail,  delta=f"{round(100*n_fail/n_total)}% excluded")
-m4.metric("Review",          n_rev,   delta=f"confidence < 0.80")
-
-st.markdown("<br>", unsafe_allow_html=True)
-
-# Annotated table
-col_left, col_right = st.columns([3, 2])
-
-with col_left:
-    st.markdown("**Annotated episodes**")
-
-    display_rows = []
-    for r in results:
-        display_rows.append({
-            "episode":      r["ep"],
-            "steps":        r["n_steps"],
-            "failure_type": r["failure_type"].replace("_", " "),
-            "confidence":   r["confidence"],
-            "peak_step":    r["peak_step"] if r["peak_step"] >= 0 else "—",
-            "status":       ("REVIEW" if r["needs_review"]
-                             else "PASS" if r["use_for_policy"] else "FAIL"),
-        })
-
-    st.dataframe(
-        pd.DataFrame(display_rows),
-        use_container_width=True,
-        hide_index=True,
-        height=320,
-        column_config={
-            "confidence": st.column_config.ProgressColumn(
-                "confidence", min_value=0, max_value=1, format="%.3f"
-            ),
-        },
-    )
-
-with col_right:
-    st.markdown("**Failure distribution**")
-    counts = Counter(df["failure_type"])
-    labels = list(counts.keys())
-    values = list(counts.values())
-
-    fig_pie = go.Figure(go.Pie(
-        labels=[l.replace("_", " ") for l in labels],
-        values=values,
-        hole=0.55,
-        marker=dict(colors=[COLORS.get(l, "#6b7280") for l in labels]),
-        textinfo="label+percent",
-        textfont=dict(size=11),
-        showlegend=False,
-    ))
-    fig_pie.update_layout(
-        height=230,
-        margin=dict(l=0, r=0, t=0, b=0),
-        paper_bgcolor="rgba(0,0,0,0)",
-        plot_bgcolor="rgba(0,0,0,0)",
-    )
-    st.plotly_chart(fig_pie, use_container_width=True)
-
-    # Confidence histogram
-    st.markdown("**Confidence distribution**")
-    fig_hist = go.Figure(go.Histogram(
-        x=df["confidence"].tolist(),
-        nbinsx=15,
-        marker_color=TEAL,
-        opacity=0.8,
-    ))
-    fig_hist.add_vline(
-        x=0.80, line_dash="dot", line_color="#6b7280",
-        annotation_text="review threshold",
-        annotation_font_size=10,
-        annotation_font_color="#6b7280",
-    )
-    fig_hist.update_layout(
-        height=160,
-        margin=dict(l=0, r=0, t=0, b=0),
-        paper_bgcolor="rgba(0,0,0,0)",
-        plot_bgcolor="rgba(0,0,0,0)",
-        xaxis=dict(title="confidence", gridcolor="#1f2937"),
-        yaxis=dict(title="episodes",   gridcolor="#1f2937"),
-    )
-    st.plotly_chart(fig_hist, use_container_width=True)
-
-st.divider()
-
-# ─── Section 3: Episode detail ────────────────────────────────────────────────
-
-st.markdown('<div class="section-label">Episode detail — step-level output</div>', unsafe_allow_html=True)
-
-# Find the most notable failure to show first
+# Notable failure episode
 notable = max(
     (r for r in results if r["failure_type"] != "nominal"),
     key=lambda r: r["fail_frac"],
     default=results[0],
 )
 
-ep_options = [
-    f"ep_{i:03d}  ·  {r['failure_type'].replace('_', ' ')}  ·  conf {r['confidence']:.3f}"
-    for i, r in enumerate(results)
-]
-default_idx = next(
-    (i for i, r in enumerate(results) if r["ep"] == notable["ep"]), 0
-)
-sel = st.selectbox("Select episode", ep_options, index=default_idx, label_visibility="collapsed")
-r_sel = results[ep_options.index(sel)]
-seq   = r_sel["seq"]
-T     = len(seq)
+# ── Step indicator ────────────────────────────────────────────────────────────
+step = st.session_state["step"]
+steps = ["Raw data", "Annotation", "Output"]
 
-col_trace, col_steps = st.columns([3, 2])
+def dot_class(i):
+    if i < step:  return "done"
+    if i == step: return "active"
+    return ""
 
-with col_trace:
+def label_class(i):
+    return "active" if i == step else ""
+
+line_classes = ["done" if i < step else "" for i in range(len(steps)-1)]
+
+dots_html = ""
+for i, s in enumerate(steps):
+    num = "&#10003;" if i < step else str(i + 1)
+    dots_html += f"""
+    <div class="step-item">
+      <div class="step-dot {dot_class(i)}">{num}</div>
+      <div class="step-label {label_class(i)}">{s}</div>
+    </div>"""
+    if i < len(steps) - 1:
+        dots_html += f'<div class="step-line {line_classes[i]}"></div>'
+
+st.markdown(f'<div class="steps">{dots_html}</div>', unsafe_allow_html=True)
+
+# ══════════════════════════════════════════════════════════════════════════════
+# STEP 0 — RAW DATA
+# ══════════════════════════════════════════════════════════════════════════════
+if step == 0:
+    st.markdown(f"<h2 style='margin-bottom:.3rem;'>Raw training data</h2>", unsafe_allow_html=True)
+    st.markdown(f"<p style='color:{T2};font-size:.95rem;margin-bottom:2rem;'>{ds_name} · {meta['robot']} · {meta['task']} · {n_total} episodes</p>", unsafe_allow_html=True)
+
+    # Raw table — no labels
+    raw_rows = []
+    for i, ep in enumerate(results[:12]):
+        seq = ep["seq"]
+        vel = np.diff(seq, axis=0)
+        raw_rows.append({
+            "episode":      ep["ep"],
+            "steps":        ep["n_steps"],
+            "joint_0":      round(float(seq[:, 0].mean()), 4),
+            "joint_1":      round(float(seq[:, 1].mean()), 4),
+            "vel_max":      round(float(np.abs(vel).max()), 4),
+            "failure_type": "—",
+            "status":       "—",
+        })
+
+    st.dataframe(
+        pd.DataFrame(raw_rows),
+        use_container_width=True,
+        hide_index=True,
+        height=380,
+    )
+
+    st.markdown(f"""
+    <div style='margin-top:1.8rem;padding:20px 24px;background:{PANEL};border:1px solid {BORDER};border-radius:8px;border-left:3px solid {RED};'>
+      <div style='font-size:.82rem;font-weight:600;color:{T1};margin-bottom:4px;'>No labels. No quality signal.</div>
+      <div style='font-size:.82rem;color:{T2};'>An estimated 20–30% of these episodes contain failures. Your policy is training on all of them.</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown("<div style='height:2rem'></div>", unsafe_allow_html=True)
+    col_nav = st.columns([6, 1])
+    with col_nav[1]:
+        if st.button("Next", type="primary", use_container_width=True):
+            st.session_state["step"] = 1
+            st.rerun()
+
+# ══════════════════════════════════════════════════════════════════════════════
+# STEP 1 — ANNOTATION
+# ══════════════════════════════════════════════════════════════════════════════
+elif step == 1:
+    st.markdown(f"<h2 style='margin-bottom:.3rem;'>Annotation</h2>", unsafe_allow_html=True)
+    st.markdown(f"<p style='color:{T2};font-size:.95rem;margin-bottom:2rem;'>{n_total} episodes · {n_pass} passed · {n_fail} excluded · {n_rev} flagged for review</p>", unsafe_allow_html=True)
+
+    # Metric strip
+    st.markdown(f"""
+    <div class="metric-strip">
+      {metric_html("Passed", str(n_pass), f"{round(100*n_pass/n_total)}% of dataset")}
+      {metric_html("Excluded", str(n_fail), f"{round(100*n_fail/n_total)}% failure rate")}
+      {metric_html("For review", str(n_rev), "confidence < 0.80")}
+      {metric_html("Mean confidence", f"{df['confidence'].mean():.3f}")}
+    </div>
+    """, unsafe_allow_html=True)
+
+    # Most notable failure — full-width sensor trace
+    seq_n  = notable["seq"]
+    T_n    = len(seq_n)
+    dims_n = min(seq_n.shape[1], 4)
+
     fig = go.Figure()
-    for d in range(min(seq.shape[1], 4)):
+    for d in range(dims_n):
         fig.add_trace(go.Scatter(
-            x=list(range(T)),
-            y=seq[:, d].tolist(),
+            x=list(range(T_n)),
+            y=seq_n[:, d].tolist(),
             mode="lines",
             name=f"joint {d}",
-            line=dict(color=TRACE_PALETTE[d], width=1.6),
+            line=dict(color=TRACE_PAL[d], width=1.8),
+            hovertemplate=f"joint {d}: %{{y:.4f}}<extra></extra>",
         ))
-
-    fail_steps = [t for t, l in enumerate(r_sel["step_labels"]) if l != "nominal"]
+    fail_steps = [t for t, l in enumerate(notable["step_labels"]) if l != "nominal"]
     if fail_steps:
         fig.add_vrect(
-            x0=min(fail_steps) - 0.5,
-            x1=max(fail_steps) + 0.5,
-            fillcolor="#ef4444",
-            opacity=0.10,
-            layer="below",
-            line_width=0,
+            x0=min(fail_steps) - .5, x1=max(fail_steps) + .5,
+            fillcolor=RED, opacity=.08, layer="below", line_width=0,
         )
         fig.add_annotation(
-            x=min(fail_steps),
-            y=float(seq[:, 0].max()),
-            text=f"{r_sel['failure_type'].replace('_', ' ')} · step {r_sel['peak_step']}",
+            x=min(fail_steps) + (max(fail_steps) - min(fail_steps)) / 2,
+            y=float(seq_n[:, 0].max()),
+            text=f"{notable['failure_type'].replace('_', ' ')}  ·  step {notable['peak_step']}  ·  conf {notable['confidence']:.3f}",
             showarrow=False,
-            font=dict(color="#f87171", size=11),
-            xanchor="left",
+            font=dict(color=RED, size=11, family="monospace"),
+            bgcolor=f"rgba(239,68,68,.08)",
+            borderpad=6,
         )
-
     fig.update_layout(
-        height=240,
-        margin=dict(l=0, r=0, t=4, b=0),
-        paper_bgcolor="rgba(0,0,0,0)",
-        plot_bgcolor="rgba(0,0,0,0)",
-        xaxis=dict(title="timestep", gridcolor="#1f2937"),
-        yaxis=dict(title="joint state", gridcolor="#1f2937"),
-        legend=dict(orientation="h", y=1.12, font=dict(size=11)),
-    )
-    st.plotly_chart(fig, use_container_width=True)
-
-    # Per-step confidence
-    fig2 = go.Figure(go.Bar(
-        x=list(range(T)),
-        y=r_sel["step_confs"],
-        marker=dict(
-            color=[TEAL if l == "nominal" else "#ef4444" for l in r_sel["step_labels"]],
-            opacity=0.75,
-        ),
-    ))
-    fig2.add_hline(y=0.80, line_dash="dot", line_color="#6b7280")
-    fig2.update_layout(
-        height=110,
+        height=260,
         margin=dict(l=0, r=0, t=0, b=0),
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
-        xaxis=dict(title="timestep", gridcolor="#1f2937"),
-        yaxis=dict(title="confidence", range=[0, 1], gridcolor="#1f2937"),
-        showlegend=False,
+        xaxis=dict(title="timestep", gridcolor=BORDER, color=T2, linecolor=BORDER),
+        yaxis=dict(title="joint state", gridcolor=BORDER, color=T2, linecolor=BORDER),
+        legend=dict(orientation="h", y=1.12, font=dict(color=T2, size=11)),
+        hoverlabel=dict(bgcolor=PANEL, font_color=T1),
     )
-    st.plotly_chart(fig2, use_container_width=True)
 
-with col_steps:
-    st.markdown("**Verdict**")
-    st.table(pd.DataFrame([
-        ("failure type",  r_sel["failure_type"].replace("_", " ")),
-        ("confidence",    f"{r_sel['confidence']:.3f}"),
-        ("peak step",     str(r_sel["peak_step"])),
-        ("fail fraction", f"{r_sel['fail_frac']:.1%}"),
-        ("use for policy", "yes" if r_sel["use_for_policy"] else "no"),
-        ("needs review",  "yes" if r_sel["needs_review"] else "no"),
-    ], columns=["", ""]).set_index(""))
+    st.markdown(f"<div style='font-size:.75rem;font-weight:600;color:{T2};letter-spacing:.06em;text-transform:uppercase;margin-bottom:10px;'>Detected failure — {notable['ep']}</div>", unsafe_allow_html=True)
+    st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
 
-    st.markdown("**Steps per class**")
-    fc = {k.replace("_", " "): v for k, v in r_sel["failure_counts"].items() if v > 0}
-    if fc:
-        fc_df = (
-            pd.DataFrame({"class": list(fc.keys()), "steps": list(fc.values())})
-            .sort_values("steps", ascending=False)
-        )
-        st.bar_chart(fc_df.set_index("class")["steps"], color=TEAL)
+    st.markdown("<div style='height:.5rem'></div>", unsafe_allow_html=True)
 
-st.divider()
+    # Annotated table
+    st.markdown(f"<div style='font-size:.75rem;font-weight:600;color:{T2};letter-spacing:.06em;text-transform:uppercase;margin-bottom:10px;'>All episodes</div>", unsafe_allow_html=True)
 
-# ─── Section 4: Output ────────────────────────────────────────────────────────
-
-st.markdown('<div class="section-label">Output — filtered dataset</div>', unsafe_allow_html=True)
-
-col_out, col_code = st.columns([3, 2])
-
-with col_out:
-    st.markdown("**Annotated + filtered**")
-    out_rows = []
+    table_rows = []
     for r in results:
-        status = "REVIEW" if r["needs_review"] else "PASS" if r["use_for_policy"] else "FAIL"
-        out_rows.append({
+        s = "REVIEW" if r["needs_review"] else "PASS" if r["use_for_policy"] else "FAIL"
+        table_rows.append({
             "episode":      r["ep"],
+            "steps":        r["n_steps"],
             "failure_type": r["failure_type"].replace("_", " "),
             "confidence":   r["confidence"],
-            "use_for_policy": r["use_for_policy"],
-            "status":       status,
+            "peak_step":    r["peak_step"] if r["peak_step"] >= 0 else "—",
+            "status":       s,
         })
+
     st.dataframe(
-        pd.DataFrame(out_rows),
+        pd.DataFrame(table_rows),
         use_container_width=True,
         hide_index=True,
         height=300,
         column_config={
-            "use_for_policy": st.column_config.CheckboxColumn("use_for_policy"),
-            "confidence":     st.column_config.ProgressColumn(
-                "confidence", min_value=0, max_value=1, format="%.3f"
+            "confidence": st.column_config.ProgressColumn(
+                "confidence", min_value=0, max_value=1, format="%.3f",
             ),
         },
     )
 
-with col_code:
-    st.markdown("**Your training script — one line changes**")
-    st.markdown("<br>", unsafe_allow_html=True)
-    st.markdown("Before")
-    st.code(
-        'dataset = load_dataset("my_robot_data")\ntrain(dataset)',
-        language="python",
-    )
-    st.markdown("After")
-    st.code(
-        'dataset = load_dataset("my_robot_data")\ntrain(\n    dataset.filter(\n        lambda ep: ep["use_for_policy"]\n    )\n)',
-        language="python",
-    )
-    st.markdown("<br>", unsafe_allow_html=True)
-    st.markdown(
-        "Every episode has a `failure_type`, `confidence`, and `use_for_policy` flag. "
-        "No architecture changes. No new training loop. Filter and train."
-    )
+    st.markdown("<div style='height:2rem'></div>", unsafe_allow_html=True)
+    col_back, col_spacer, col_next = st.columns([1, 5, 1])
+    with col_back:
+        if st.button("Back", use_container_width=True):
+            st.session_state["step"] = 0
+            st.rerun()
+    with col_next:
+        if st.button("Next", type="primary", use_container_width=True):
+            st.session_state["step"] = 2
+            st.rerun()
+
+# ══════════════════════════════════════════════════════════════════════════════
+# STEP 2 — OUTPUT
+# ══════════════════════════════════════════════════════════════════════════════
+elif step == 2:
+    st.markdown(f"<h2 style='margin-bottom:.3rem;'>Clean output</h2>", unsafe_allow_html=True)
+    st.markdown(f"<p style='color:{T2};font-size:.95rem;margin-bottom:2rem;'>{n_pass} episodes ready for training · {n_fail + n_rev} removed or pending review</p>", unsafe_allow_html=True)
+
+    col_before, col_after = st.columns(2)
+
+    with col_before:
+        st.markdown(f"<div style='font-size:.75rem;font-weight:600;color:{T2};letter-spacing:.06em;text-transform:uppercase;margin-bottom:10px;'>Before</div>", unsafe_allow_html=True)
+        before_rows = [{"episode": r["ep"], "steps": r["n_steps"],
+                        "failure_type": "—", "status": "—"} for r in results]
+        st.dataframe(pd.DataFrame(before_rows), use_container_width=True,
+                     hide_index=True, height=320)
+
+    with col_after:
+        st.markdown(f"<div style='font-size:.75rem;font-weight:600;color:{T2};letter-spacing:.06em;text-transform:uppercase;margin-bottom:10px;'>After Haptal</div>", unsafe_allow_html=True)
+        after_rows = []
+        for r in results:
+            s = "REVIEW" if r["needs_review"] else "PASS" if r["use_for_policy"] else "FAIL"
+            after_rows.append({
+                "episode":      r["ep"],
+                "steps":        r["n_steps"],
+                "failure_type": r["failure_type"].replace("_", " "),
+                "confidence":   r["confidence"],
+                "status":       s,
+            })
+        st.dataframe(
+            pd.DataFrame(after_rows),
+            use_container_width=True,
+            hide_index=True,
+            height=320,
+            column_config={
+                "confidence": st.column_config.ProgressColumn(
+                    "confidence", min_value=0, max_value=1, format="%.3f",
+                ),
+            },
+        )
+
+    st.markdown("<div style='height:1.5rem'></div>", unsafe_allow_html=True)
+    st.markdown(f"<div style='font-size:.75rem;font-weight:600;color:{T2};letter-spacing:.06em;text-transform:uppercase;margin-bottom:10px;'>Training script</div>", unsafe_allow_html=True)
+
+    col_code_b, col_code_a = st.columns(2)
+    with col_code_b:
+        st.code('train(dataset)', language="python")
+    with col_code_a:
+        st.code('train(dataset.filter(lambda ep: ep["use_for_policy"]))', language="python")
+
+    st.markdown(f"""
+    <div style='margin-top:1.5rem;padding:20px 24px;background:{PANEL};border:1px solid {BORDER};border-radius:8px;border-left:3px solid {TEAL};'>
+      <div style='font-size:.82rem;font-weight:600;color:{T1};margin-bottom:4px;'>93.6% in-distribution accuracy &nbsp;·&nbsp; 90.8% on unseen robot platforms &nbsp;·&nbsp; {chr(954)} = 0.66 vs human operators</div>
+      <div style='font-size:.82rem;color:{T2};'>First public benchmark for robot training data annotation quality. <a href="https://huggingface.co/datasets/HaptalAI/robotics-failure-benchmark" style="color:{TEAL};text-decoration:none;">HaptalAI/robotics-failure-benchmark</a></div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown("<div style='height:2rem'></div>", unsafe_allow_html=True)
+    col_back2, _ = st.columns([1, 6])
+    with col_back2:
+        if st.button("Back", use_container_width=True):
+            st.session_state["step"] = 1
+            st.rerun()
