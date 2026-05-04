@@ -1,6 +1,6 @@
 {
-  "name": "Haptal Robotics Failure Benchmark v1.0",
-  "description": "Synthetic failure detection benchmark for robot training data quality assessment. Built on real LeRobot manipulation trajectories with physics-based failure injection.",
+  "name": "Haptal Robotics Failure Benchmark v1.1",
+  "description": "Synthetic failure detection benchmark for evaluating robot training data quality. Built on real LeRobot manipulation trajectories with randomised physics-based failure injection and hard negative examples.",
   "classes": [
     "grasp_slip",
     "velocity_spike",
@@ -9,13 +9,23 @@
     "overcorrect",
     "nominal"
   ],
-  "n_per_class": 500,
-  "total_episodes": 3000,
-  "train_episodes": 2400,
-  "test_episodes": 600,
+  "n_per_class": 300,
+  "total_episodes": 1800,
+  "train_episodes": 1440,
+  "test_episodes": 360,
+  "hard_negatives": 90,
+  "hard_neg_fraction": 0.3,
   "base_datasets": [
-    "lerobot/pusht"
+    "lerobot/pusht",
+    "lerobot/xarm_lift_medium_replay",
+    "lerobot/xarm_push_medium_replay",
+    "lerobot/aloha_sim_transfer_cube_human"
   ],
   "feature_dim": 204,
-  "version": "1.0.0"
+  "version": "1.1.0",
+  "changes_vs_v1": [
+    "Randomised injection magnitudes, timing, duration per episode",
+    "30% of nominal class are hard negatives",
+    "Per-episode RandomState \u2014 no fixed seeds inside injectors"
+  ]
 }
