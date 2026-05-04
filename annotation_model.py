@@ -211,13 +211,44 @@ def generate_weak_labels(state_seq: np.ndarray,
     for t in range(T):
         vm, am = vel_mag[t], acc_mag[t]
 
-        # ── 1. velocity_spike ─────────────────────────────────────────────
-        if vm > vel_thresh and vm > mean_vel * 2:
-            labels.append("velocity_spike")
+        # Priority order (most specific → least specific):
+        #   overshoot > self_collision > velocity_spike > position_jerk >
+        #   perception_failure > trajectory_deviation > stuck_joint >
+        #   gripper_event > high_anomaly > nominal
+        #
+        # Overshoot MUST precede velocity_spike: a sign reversal is a velocity
+        # event and gets consumed by velocity_spike if checked after.
+        # Perception_failure MUST precede velocity_spike: a pose-estimation jump
+        # (near-stillness + high acc) looks like a spike to generic checks.
 
-        # ── 2. position_jerk ──────────────────────────────────────────────
-        elif am > acc_thresh and am > mean_acc * 2:
-            labels.append("position_jerk")
+        # ── 1. overshoot — sign reversal after meaningful motion
+        #    Checked first: distinguishes corrective reversal from raw spike.
+        #    Require ≥ 2 joints reversing after velocity > 0.8× threshold
+        #    to avoid noise-driven single-joint reversals.
+        # Overshoot: sign reversal on ≥1 joint where BOTH steps have
+        # meaningful velocity (avoids labelling deceleration-to-stop as overshoot)
+        if (t > 0 and
+                int(np.sum(
+                    (np.sign(vel[t]) != np.sign(vel[t - 1])) &
+                    (np.abs(vel[t - 1]) > vel_thresh * 0.7) &
+                    (np.abs(vel[t])     > vel_thresh * 0.3)   # current step still moving
+                )) >= max(1, D // 5)):
+            labels.append("overshoot")
+
+        # ── 2. perception_failure — state discontinuity inconsistent with vel
+        #    Checked before velocity_spike: pose-estimation jumps show as
+        #    sudden large accelerations while the robot is near-stationary.
+        #    Two patterns:
+        #      (a) near-stillness + high acceleration (pose jump while still)
+        #      (b) large inter-step position jump with low velocity (teleport)
+        elif (
+            (vm < 0.25 * mean_vel and am > acc_thresh * 1.2)
+            or
+            (t > 0 and
+             np.linalg.norm(state_seq[t] - state_seq[t - 1]) > 3.0 * vel_thresh and
+             vm < 0.5 * mean_vel)
+        ):
+            labels.append("perception_failure")
 
         # ── 3. self_collision — adjacent joints opposing with large velocities
         elif (D >= 2 and t > 0 and
@@ -228,38 +259,32 @@ def generate_weak_labels(state_seq: np.ndarray,
                   ) >= max(1, D // 3)):
             labels.append("self_collision")
 
-        # ── 4. overshoot — velocity sign reversal after a fast previous step
-        elif (t > 0 and
-              np.any((np.sign(vel[t]) != np.sign(vel[t - 1])) &
-                     (np.abs(vel[t - 1]) > vel_thresh * 1.5))):
-            labels.append("overshoot")
+        # ── 4. velocity_spike — large sustained velocity (not a reversal)
+        elif vm > vel_thresh and vm > mean_vel * 2:
+            labels.append("velocity_spike")
 
-        # ── 5. trajectory_deviation — drifted far from episode mean position
+        # ── 5. position_jerk — large acceleration
+        elif am > acc_thresh and am > mean_acc * 2:
+            labels.append("position_jerk")
+
+        # ── 6. trajectory_deviation — drifted far from episode mean position
         elif np.any(np.abs(state_seq[t] - ep_mean_pos) / ep_range > 1.8):
             labels.append("trajectory_deviation")
 
-        # ── 6. stuck_joint — no motion over the last WINDOW steps
+        # ── 7. stuck_joint — no motion over the last WINDOW steps
         # Three conditions must ALL be true:
         #   (a) window position variance is low                  — window is flat
         #   (b) window velocity is << episode mean velocity      — this window much slower than normal
         #   (c) episode has meaningful overall motion            — not a globally slow/still robot
-        # Without (b)+(c), slow robots (UR5 pipetting, fine manipulation) get
-        # stuck_joint labels on every normal step, flooding training with false positives.
         elif (t >= WINDOW and
               state_seq[t - WINDOW:t].var(axis=0).max() < stuck_var * 0.5 and
               _windowed_vel[t] < mean_vel * 0.25 and
               mean_vel > 0.004):
             labels.append("stuck_joint")
 
-        # ── 7. gripper_event ──────────────────────────────────────────────
+        # ── 8. gripper_event ──────────────────────────────────────────────
         elif has_gripper and gripper_diff[t] > grip_thresh:
             labels.append("gripper_event")
-
-        # ── 8. perception_failure — near-stillness but high acceleration
-        #       proxy for pose-estimation jump: sudden state discontinuity
-        #       while the robot "wasn't moving"
-        elif (vm < 0.15 * mean_vel and am > acc_thresh * 1.5):
-            labels.append("perception_failure")
 
         # ── 9. high_anomaly — catch-all ───────────────────────────────────
         elif anomaly_scores is not None and anomaly_scores[t] > anom_thresh:

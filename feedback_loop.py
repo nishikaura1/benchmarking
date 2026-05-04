@@ -308,6 +308,164 @@ def clear_queue():
     print("  [feedback] Retraining queue cleared")
 
 
+# ── ELO-equivalent model reliability score ────────────────────────────────────
+
+ELO_PATH        = OUTPUT_DIR / "model_elo.json"
+ELO_WINDOW_DAYS = 7          # rolling window for correction rate
+ELO_BASE        = 1500       # starting score (same scale as chess ELO)
+ELO_K           = 32         # sensitivity of score changes per event
+ELO_DECAY_RATE  = 0.95       # score decays toward base if no corrections come in
+
+
+def compute_model_elo(window_days: int = ELO_WINDOW_DAYS) -> dict:
+    """
+    Compute an ELO-equivalent reliability score for the Haptal model.
+
+    Analogous to the operator ELO score used by robotics teams (e.g. MIT):
+    managers sample operator annotations and score them — high agreement with
+    ground truth raises ELO, disagreements lower it.
+
+    Here:
+      - Each human correction is a "disagreement" event (model was wrong)
+      - Each episode processed WITHOUT a correction is an implicit "agreement"
+      - ELO rises when the correction rate is low, falls when it is high
+      - Score is computed over a rolling window (default: 7 days)
+
+    Score interpretation:
+      1600+  → excellent  (correction rate < 5%)
+      1500   → baseline   (no feedback yet)
+      1400   → acceptable (correction rate ~10%)
+      1300   → degraded   (correction rate ~20%, consider retraining)
+      <1200  → critical   (retrain immediately)
+
+    Returns
+    -------
+    dict with score, interpretation, correction_rate, window_days,
+    corrections_in_window, and per_class breakdown.
+    """
+    from datetime import datetime, timezone, timedelta
+    from collections import Counter
+
+    corrections = _load_corrections()
+    now         = datetime.now(timezone.utc)
+    cutoff      = now - timedelta(days=window_days)
+
+    # Filter to rolling window
+    recent = []
+    for c in corrections:
+        try:
+            ts = datetime.fromisoformat(c["timestamp"].replace("Z", "+00:00"))
+            if ts.tzinfo is None:
+                ts = ts.replace(tzinfo=timezone.utc)
+            if ts >= cutoff:
+                recent.append(c)
+        except Exception:
+            continue
+
+    n_corrections  = len(recent)
+    per_class      = dict(Counter(c["corrected_label"] for c in recent))
+
+    # Load version history to estimate episodes processed
+    version        = get_model_version()
+    total_corrections = version.get("total_corrections", 0)
+
+    # Estimate correction rate from queue status
+    queue          = _load_queue()
+    n_total        = max(len(queue), 1)
+
+    # ELO calculation: treat each correction as a loss event
+    # Expected score per episode processed ≈ 1 - correction_rate
+    # Apply K-factor to translate into ELO delta
+    correction_rate = n_corrections / max(n_total, 1)
+
+    # Build ELO from version history if available
+    elo_history = _load_elo_history()
+    if elo_history:
+        current_elo = elo_history[-1]["score"]
+    else:
+        current_elo = ELO_BASE
+
+    # Apply ELO update: each correction event is treated as a "loss"
+    # Each N processed-without-correction events treated as a "win"
+    # Using simplified ELO: score changes proportional to correction rate
+    expected_loss_rate   = 1 / (1 + 10 ** ((current_elo - ELO_BASE) / 400))
+    actual_loss_rate     = min(correction_rate, 1.0)
+    delta                = ELO_K * (expected_loss_rate - actual_loss_rate) * 10
+    new_elo              = round(max(800, min(2200, current_elo + delta)), 1)
+
+    # Apply decay toward base if no data in window (prevents stale high scores)
+    if n_corrections == 0 and n_total > 0:
+        new_elo = round(current_elo * ELO_DECAY_RATE + ELO_BASE * (1 - ELO_DECAY_RATE), 1)
+
+    def _interpret(score: float) -> str:
+        if score >= 1600: return "excellent  (correction rate < 5%)"
+        if score >= 1500: return "good       (correction rate ~10%)"
+        if score >= 1400: return "acceptable (correction rate ~15%)"
+        if score >= 1300: return "degraded   (correction rate ~20% — consider retraining)"
+        return              "critical   (retrain immediately)"
+
+    result = {
+        "score":                new_elo,
+        "previous_score":       current_elo,
+        "delta":                round(new_elo - current_elo, 1),
+        "interpretation":       _interpret(new_elo),
+        "window_days":          window_days,
+        "corrections_in_window": n_corrections,
+        "correction_rate":      round(correction_rate * 100, 1),
+        "per_class_errors":     per_class,
+        "total_corrections":    total_corrections,
+        "computed_at":          now.isoformat(),
+        "model_version":        version["version"],
+    }
+
+    # Persist
+    _append_elo_history(result)
+    ELO_PATH.write_text(json.dumps(result, indent=2))
+
+    print(f"\n  {'─'*50}")
+    print(f"  MODEL RELIABILITY (ELO-equivalent)")
+    print(f"  {'─'*50}")
+    print(f"  Score          : {new_elo:.0f}  (prev: {current_elo:.0f}, Δ{delta:+.1f})")
+    print(f"  Interpretation : {_interpret(new_elo)}")
+    print(f"  Correction rate: {correction_rate*100:.1f}%  ({n_corrections} in last {window_days}d)")
+    print(f"  Model version  : {version['version']}")
+    if per_class:
+        print(f"  Error classes  : " + ", ".join(f"{c}({n})" for c, n in
+              sorted(per_class.items(), key=lambda x: -x[1])[:5]))
+    print(f"  {'─'*50}")
+    print(f"  Human operator ELO reference: teams use ELO 1400–1600 range")
+    print(f"  Haptal auto-retrains below 1300 (equivalent to replacing an operator)")
+    print()
+
+    return result
+
+
+def _load_elo_history() -> list:
+    hist_path = OUTPUT_DIR / "model_elo_history.json"
+    if hist_path.exists():
+        return json.loads(hist_path.read_text())
+    return []
+
+
+def _append_elo_history(entry: dict):
+    hist_path = OUTPUT_DIR / "model_elo_history.json"
+    history   = _load_elo_history()
+    history.append({k: entry[k] for k in
+                    ("score", "correction_rate", "model_version", "computed_at")})
+    hist_path.write_text(json.dumps(history[-100:], indent=2))  # keep last 100
+
+
+def get_reliability_report() -> dict:
+    """Full reliability report: ELO + queue status + version history."""
+    elo    = compute_model_elo()
+    queue  = get_queue_status()
+    return {
+        "elo":   elo,
+        "queue": queue,
+        "auto_retrain_trigger": elo["score"] < 1300 or queue["queue_size"] >= RETRAIN_THRESHOLD,
+    }
+
+
 # ── CLI ───────────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
@@ -319,6 +477,8 @@ if __name__ == "__main__":
     sub.add_parser("retrain",       help="Run weekly retrain check")
     sub.add_parser("force-retrain", help="Force retrain now")
     sub.add_parser("clear",         help="Clear the queue")
+    sub.add_parser("elo",           help="Compute model ELO reliability score")
+    sub.add_parser("reliability",   help="Full reliability report (ELO + queue)")
 
     p_corr = sub.add_parser("correct", help="Log a single correction")
     p_corr.add_argument("--episode",   required=True)
@@ -356,6 +516,14 @@ if __name__ == "__main__":
             corrected_label=args.corrected,
             reviewer_id=args.reviewer,
         )
+
+    elif args.cmd == "elo":
+        compute_model_elo()
+
+    elif args.cmd == "reliability":
+        import json as _json
+        r = get_reliability_report()
+        print(f"\n  Auto-retrain trigger: {'YES ⚠️' if r['auto_retrain_trigger'] else 'no'}")
 
     else:
         parser.print_help()

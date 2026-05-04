@@ -1,0 +1,17 @@
+{
+  "score": 1340.0,
+  "previous_score": 1500,
+  "delta": -160.0,
+  "interpretation": "degraded   (correction rate ~20% \u2014 consider retraining)",
+  "window_days": 7,
+  "corrections_in_window": 3,
+  "correction_rate": 100.0,
+  "per_class_errors": {
+    "velocity_spike": 1,
+    "nominal": 1,
+    "position_jerk": 1
+  },
+  "total_corrections": 0,
+  "computed_at": "2026-05-04T00:25:04.678908+00:00",
+  "model_version": "1.0.0"
+}
