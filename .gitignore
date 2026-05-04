@@ -12,6 +12,10 @@ env/
 
 # Large model/data files
 benchmark_output/*.pkl
+# Allow small demo episode files
+!benchmark_output/lerobot_xarm_push_medium_replay_episodes.pkl
+!benchmark_output/lerobot_aloha_sim_insertion_human_episodes.pkl
+!benchmark_output/lerobot_droid_100_episodes.pkl
 benchmark_output/*.h5
 benchmark_output/*.pt
 benchmark_output/*.png
