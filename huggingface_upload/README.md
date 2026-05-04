@@ -44,6 +44,17 @@ No standardized benchmark currently exists for robot training data annotation qu
 | Train | 2,400 |
 | Test (fixed) | 600 |
 
+## Leaderboard
+
+| Rank | Model | Accuracy | Macro F1 | Cohen's κ | OOD F1 | Gap |
+|---|---|---|---|---|---|---|
+| 🥇 | Haptal (multi-dataset RF) | **93.6%** | **0.937** | **0.923** | **0.907** | **0.030** |
+| — | Human operator (pass/fail only)* | 83.1% | — | 0.661 | — | — |
+| — | Majority baseline | 53.1% | — | 0.000 | — | — |
+
+\* Human operators provide binary pass/fail only — no failure type, no timestep.  
+Submit your model → `aarav@haptal.ai` · see `leaderboard.json` for full entry details.
+
 ## Haptal baseline results
 
 | Metric | Value |
@@ -53,7 +64,7 @@ No standardized benchmark currently exists for robot training data annotation qu
 | Generalization gap | 0.03 |
 | Macro F1 | 0.937 |
 | Cohen's Kappa | 0.923 |
-| All classes above F1 | 0.88 |
+| Weakest class F1 | 0.887 (grasp_slip) |
 
 ## How to use
 

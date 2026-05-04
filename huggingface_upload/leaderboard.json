@@ -1,0 +1,68 @@
+{
+  "benchmark": "Haptal Robotics Failure Benchmark v1.1",
+  "description": "Episode-level failure classification across 6 failure types. Fixed test set of 360 episodes from 5 robot platforms. Submit predictions to aarav@haptal.ai to be added.",
+  "metric_definitions": {
+    "accuracy": "Fraction of episodes correctly classified",
+    "macro_f1": "Unweighted mean F1 across all 6 failure classes",
+    "cohen_kappa": "Inter-rater agreement vs ground truth (κ=1.0 is perfect, κ=0.0 is chance)",
+    "ood_macro_f1": "Macro F1 on held-out robot platform not seen during training",
+    "generalisation_gap": "In-distribution macro F1 minus OOD macro F1 (lower is better)"
+  },
+  "human_reference": {
+    "method": "Human operator pass/fail labels (LeRobot datasets)",
+    "cohen_kappa": 0.66,
+    "accuracy": 0.831,
+    "false_alarm_rate": 0.153,
+    "miss_rate": 0.187,
+    "note": "Human operators provide binary pass/fail only. Haptal provides 6-class failure type with timestep precision."
+  },
+  "entries": [
+    {
+      "rank": 1,
+      "model": "Haptal — supervised episode head + RF (multi-dataset)",
+      "submitter": "Haptal AI",
+      "date": "2026-05-03",
+      "accuracy": 0.9361,
+      "macro_f1": 0.9366,
+      "cohen_kappa": 0.9233,
+      "ood_macro_f1": 0.9068,
+      "generalisation_gap": 0.0298,
+      "train_datasets": ["lerobot/pusht", "lerobot/xarm_lift_medium_replay", "lerobot/xarm_push_medium_replay", "lerobot/aloha_sim_transfer_cube_human"],
+      "notes": "68-dim step features (mean+std+max) → 204-dim episode vector. Multi-dataset training. Hard negatives in nominal class."
+    },
+    {
+      "rank": 2,
+      "model": "Human operator (binary pass/fail, supervised head)",
+      "submitter": "Haptal AI (human baseline)",
+      "date": "2026-05-03",
+      "accuracy": 0.831,
+      "macro_f1": null,
+      "cohen_kappa": 0.66,
+      "ood_macro_f1": null,
+      "generalisation_gap": null,
+      "train_datasets": ["lerobot/xarm_lift_medium_replay", "lerobot/droid_100"],
+      "notes": "Human operator pass/fail labels as ground truth. Binary only — no failure type or timestep. 160 episodes."
+    },
+    {
+      "rank": 3,
+      "model": "Majority class baseline",
+      "submitter": "Haptal AI (baseline)",
+      "date": "2026-05-03",
+      "accuracy": 0.5312,
+      "macro_f1": null,
+      "cohen_kappa": 0.0,
+      "ood_macro_f1": null,
+      "generalisation_gap": null,
+      "train_datasets": [],
+      "notes": "Always predicts the majority class. No learning."
+    }
+  ],
+  "submission_instructions": {
+    "format": "CSV with columns: episode_id, predicted_class",
+    "classes": ["grasp_slip", "nominal", "overcorrect", "stuck_joint", "trajectory_deviation", "velocity_spike"],
+    "submit_to": "aarav@haptal.ai",
+    "subject_line": "Benchmark submission — [your model name]",
+    "scoring_script": "python score.py your_predictions.csv"
+  },
+  "last_updated": "2026-05-03"
+}
