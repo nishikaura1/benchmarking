@@ -1,0 +1,850 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Robot Episode Viewer</title>
+
+<!-- Chart.js for velocity plot -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+<!-- Three.js import map -->
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.158.0/examples/jsm/"
+  }
+}
+</script>
+
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:        #0d1117;
+    --panel:     #161b22;
+    --border:    #30363d;
+    --text:      #c9d1d9;
+    --muted:     #8b949e;
+    --accent:    #388bfd;
+    --danger:    #f85149;
+    --success:   #3fb950;
+    --warn:      #d29922;
+    --purple:    #bc8cff;
+    --teal:      #39d353;
+    --link-blue: #4a90d9;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', monospace;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* ── Header ──────────────────────────────────────────────────────── */
+  header {
+    padding: 10px 20px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-shrink: 0;
+  }
+  header h1 { font-size: 15px; font-weight: 600; letter-spacing: 0.5px; }
+  header span { font-size: 12px; color: var(--muted); }
+
+  /* ── Main layout ─────────────────────────────────────────────────── */
+  main {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  /* ── Left panel ──────────────────────────────────────────────────── */
+  #left-panel {
+    width: 260px;
+    min-width: 200px;
+    background: var(--panel);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+  #left-panel .panel-header {
+    padding: 10px 14px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    border-bottom: 1px solid var(--border);
+  }
+  #episode-list {
+    overflow-y: auto;
+    flex: 1;
+  }
+  .ep-item {
+    padding: 9px 14px;
+    cursor: pointer;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    transition: background 0.1s;
+  }
+  .ep-item:hover   { background: #1f2937; }
+  .ep-item.active  { background: #1c2d4a; border-left: 3px solid var(--accent); }
+  .ep-item .ep-id  { font-size: 12px; font-weight: 600; font-family: monospace; }
+  .ep-item .ep-meta { font-size: 10px; color: var(--muted); }
+
+  .badge {
+    display: inline-block;
+    padding: 2px 6px;
+    border-radius: 10px;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+  }
+  .badge-nominal            { background: #1a4a2a; color: var(--success); }
+  .badge-velocity_spike     { background: #3d2800; color: #f0a500; }
+  .badge-stuck_joint        { background: #0d2d4a; color: #58a6ff; }
+  .badge-position_jerk      { background: #2d1a4a; color: var(--purple); }
+  .badge-overshoot          { background: #3d2d00; color: #e3b341; }
+  .badge-trajectory_deviation { background: #1a3a2a; color: var(--teal); }
+  .badge-unknown            { background: #2d2d2d; color: var(--muted); }
+
+  /* ── Right panel ─────────────────────────────────────────────────── */
+  #right-panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* ── 3D Viewer ───────────────────────────────────────────────────── */
+  #viewer-container {
+    flex: 0 0 55%;
+    position: relative;
+    background: #070b12;
+    border-bottom: 1px solid var(--border);
+  }
+  #three-canvas {
+    display: block;
+    width: 100% !important;
+    height: 100% !important;
+  }
+
+  /* HUD overlay in top-left of 3D view */
+  #hud {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    background: rgba(13,17,23,0.82);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 11px;
+    line-height: 1.7;
+    min-width: 180px;
+    pointer-events: none;
+  }
+  #hud .hud-label { color: var(--muted); margin-right: 4px; }
+  #hud .hud-val   { color: var(--text); font-family: monospace; }
+  #hud .hud-fail  { color: var(--danger); font-weight: 600; }
+
+  /* Hint in top-right */
+  #hint {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    font-size: 10px;
+    color: var(--muted);
+    text-align: right;
+    pointer-events: none;
+  }
+
+  /* Failure flash ring */
+  #failure-ring {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    border: 3px solid transparent;
+    border-radius: 0;
+    transition: border-color 0.15s;
+  }
+  #failure-ring.active { border-color: rgba(248, 81, 73, 0.6); }
+
+  /* ── Bottom section: velocity plot + controls ────────────────────── */
+  #bottom-section {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  #chart-container {
+    flex: 1;
+    position: relative;
+    padding: 8px 14px 0;
+    overflow: hidden;
+  }
+  #vel-chart { width: 100% !important; height: 100% !important; }
+
+  /* ── Playback controls ───────────────────────────────────────────── */
+  #controls {
+    padding: 8px 14px 10px;
+    background: var(--panel);
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+  }
+  .ctrl-btn {
+    background: #21262d;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    cursor: pointer;
+    font-size: 14px;
+    width: 32px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.1s, border-color 0.1s;
+    flex-shrink: 0;
+  }
+  .ctrl-btn:hover { background: #30363d; border-color: var(--accent); }
+  .ctrl-btn:active { background: #1c2d4a; }
+
+  #scrubber {
+    flex: 1;
+    accent-color: var(--accent);
+    height: 4px;
+    cursor: pointer;
+  }
+  #step-label {
+    font-size: 11px;
+    color: var(--muted);
+    font-family: monospace;
+    min-width: 70px;
+    text-align: right;
+  }
+  #speed-select {
+    background: #21262d;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-size: 11px;
+    padding: 3px 6px;
+    cursor: pointer;
+  }
+
+  /* No-episode placeholder */
+  #placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: var(--muted);
+    font-size: 13px;
+    gap: 8px;
+  }
+  #placeholder .big { font-size: 36px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Robot Episode Viewer</h1>
+  <span>xArm 4-DOF · 50 Hz · Forward Kinematics</span>
+</header>
+
+<main>
+  <!-- Left: episode list -->
+  <div id="left-panel">
+    <div class="panel-header">Episodes</div>
+    <div id="episode-list">
+      <div id="placeholder">
+        <div class="big">⏳</div>
+        Loading episodes…
+      </div>
+    </div>
+  </div>
+
+  <!-- Right: viewer + chart + controls -->
+  <div id="right-panel">
+    <div id="viewer-container">
+      <canvas id="three-canvas"></canvas>
+      <div id="hud">
+        <div><span class="hud-label">Episode</span><span class="hud-val" id="hud-ep">—</span></div>
+        <div><span class="hud-label">Class</span><span class="hud-val" id="hud-class">—</span></div>
+        <div><span class="hud-label">Step</span><span class="hud-val" id="hud-step">—</span></div>
+        <div><span class="hud-label">J1</span><span class="hud-val" id="hud-j1">—</span></div>
+        <div><span class="hud-label">J2</span><span class="hud-val" id="hud-j2">—</span></div>
+        <div><span class="hud-label">J3</span><span class="hud-val" id="hud-j3">—</span></div>
+        <div><span class="hud-label">J4</span><span class="hud-val" id="hud-j4">—</span></div>
+        <div id="fail-line" style="display:none">
+          <span class="hud-fail" id="hud-fail-label">● FAILURE</span>
+        </div>
+      </div>
+      <div id="hint">🖱 Drag to orbit · Scroll to zoom · Right-drag to pan</div>
+      <div id="failure-ring"></div>
+    </div>
+
+    <div id="bottom-section">
+      <div id="chart-container">
+        <canvas id="vel-chart"></canvas>
+      </div>
+      <div id="controls">
+        <button class="ctrl-btn" id="btn-start" title="Jump to start">⏮</button>
+        <button class="ctrl-btn" id="btn-play"  title="Play/Pause">▶</button>
+        <button class="ctrl-btn" id="btn-end"   title="Jump to end">⏭</button>
+        <input type="range" id="scrubber" min="0" max="100" value="0" />
+        <span id="step-label">0 / 0</span>
+        <select id="speed-select" title="Playback speed">
+          <option value="0.25">0.25×</option>
+          <option value="0.5">0.5×</option>
+          <option value="1" selected>1×</option>
+          <option value="2">2×</option>
+          <option value="4">4×</option>
+        </select>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+// ── Constants ──────────────────────────────────────────────────────────────────
+const API = '';   // same origin
+const DT  = 0.02; // 50 Hz
+
+// xArm 4-DOF link lengths (m), scaled for Three.js display
+const S    = 3.0;
+const FK_D1 = 0.267 * S;   // base column height
+const FK_A2 = 0.267 * S;   // upper arm
+const FK_A3 = 0.235 * S;   // forearm
+const FK_A4 = 0.100 * S;   // wrist + end-effector
+
+const JOINT_COLORS = ['#4a90d9','#5ab4e0','#6acfe5','#7ae4e0'];
+const FAILURE_COLORS = {
+  velocity_spike:       '#f0a500',
+  stuck_joint:          '#58a6ff',
+  position_jerk:        '#bc8cff',
+  overshoot:            '#e3b341',
+  trajectory_deviation: '#39d353',
+  nominal:              '#3fb950',
+  unknown:              '#8b949e',
+};
+
+// ── State ──────────────────────────────────────────────────────────────────────
+let episodeData   = null;
+let currentStep   = 0;
+let isPlaying     = false;
+let playbackSpeed = 1.0;
+let accumulatedTime = 0;
+let lastTimestamp  = null;
+let velChart       = null;
+
+// ── Three.js setup ─────────────────────────────────────────────────────────────
+const canvas    = document.getElementById('three-canvas');
+const container = document.getElementById('viewer-container');
+
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+renderer.setPixelRatio(window.devicePixelRatio);
+renderer.shadowMap.enabled = true;
+renderer.setClearColor(0x070b12);
+
+const scene  = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(45, 1, 0.01, 100);
+camera.position.set(3.2, 2.8, 3.2);
+camera.lookAt(0, FK_D1, 0);
+
+const controls = new OrbitControls(camera, canvas);
+controls.target.set(0, FK_D1 * 0.6, 0);
+controls.enableDamping = true;
+controls.dampingFactor = 0.08;
+controls.minDistance = 0.5;
+controls.maxDistance = 12;
+controls.update();
+
+// ── Lighting ───────────────────────────────────────────────────────────────────
+scene.add(new THREE.AmbientLight(0xffffff, 0.45));
+
+const keyLight = new THREE.DirectionalLight(0xffffff, 0.9);
+keyLight.position.set(4, 8, 4);
+keyLight.castShadow = true;
+scene.add(keyLight);
+
+const fillLight = new THREE.DirectionalLight(0x88aaff, 0.3);
+fillLight.position.set(-4, 2, -4);
+scene.add(fillLight);
+
+// ── Grid / floor ───────────────────────────────────────────────────────────────
+const gridHelper = new THREE.GridHelper(6, 20, 0x222a36, 0x1a2130);
+scene.add(gridHelper);
+
+// ── Robot mesh creation ────────────────────────────────────────────────────────
+const LINK_RADIUS  = 0.045;
+const JOINT_RADIUS = 0.065;
+
+const robotGroup = new THREE.Group();
+scene.add(robotGroup);
+
+// Base platform
+const baseMesh = new THREE.Mesh(
+  new THREE.CylinderGeometry(0.18, 0.22, 0.06, 32),
+  new THREE.MeshPhongMaterial({ color: 0x3a3f4b })
+);
+baseMesh.position.y = 0.03;
+robotGroup.add(baseMesh);
+
+// Base column (link 0)
+const baseColumn = new THREE.Mesh(
+  new THREE.CylinderGeometry(LINK_RADIUS * 0.7, LINK_RADIUS * 0.7, FK_D1, 12),
+  new THREE.MeshPhongMaterial({ color: 0x4a90d9 })
+);
+robotGroup.add(baseColumn);
+
+// Links 1-3 (upper arm, forearm, wrist)
+const linkMeshes = [];
+const linkLengths = [FK_A2, FK_A3, FK_A4];
+for (const len of linkLengths) {
+  const m = new THREE.Mesh(
+    new THREE.CylinderGeometry(LINK_RADIUS, LINK_RADIUS, len, 12),
+    new THREE.MeshPhongMaterial({ color: 0x4a90d9 })
+  );
+  robotGroup.add(m);
+  linkMeshes.push(m);
+}
+
+// Joint spheres (shoulder, elbow, wrist, end-effector)
+const jointMeshes = [];
+const jointSizes = [JOINT_RADIUS, JOINT_RADIUS * 0.85, JOINT_RADIUS * 0.7, JOINT_RADIUS * 0.55];
+for (const r of jointSizes) {
+  const m = new THREE.Mesh(
+    new THREE.SphereGeometry(r, 20, 20),
+    new THREE.MeshPhongMaterial({ color: 0x6fb3f5 })
+  );
+  robotGroup.add(m);
+  jointMeshes.push(m);
+}
+
+// End-effector cone
+const eeMesh = new THREE.Mesh(
+  new THREE.ConeGeometry(0.04, 0.12, 8),
+  new THREE.MeshPhongMaterial({ color: 0xffffff })
+);
+robotGroup.add(eeMesh);
+
+// Trajectory ghost line
+const ghostGeom = new THREE.BufferGeometry();
+const ghostMat  = new THREE.LineBasicMaterial({ color: 0x2a6aad, transparent: true, opacity: 0.4 });
+const ghostLine = new THREE.Line(ghostGeom, ghostMat);
+robotGroup.add(ghostLine);
+
+// ── Forward Kinematics ─────────────────────────────────────────────────────────
+function computeFK(q) {
+  const [q0, q1, q2, q3] = q;
+  const cx = Math.cos(q0), sx = Math.sin(q0);
+  const a1 = q1, a2 = q1 + q2, a3 = q1 + q2 + q3;
+
+  const p0 = new THREE.Vector3(0, 0, 0);
+  const p1 = new THREE.Vector3(0, FK_D1, 0);
+
+  // Each subsequent joint extends along the arm plane
+  // arm-plane horizontal direction: [cx, 0, sx]
+  // arm-plane vertical direction:   [0, 1, 0]
+  const p2 = new THREE.Vector3(
+    FK_A2 * Math.cos(a1) * cx,
+    FK_D1 + FK_A2 * Math.sin(a1),
+    FK_A2 * Math.cos(a1) * sx
+  );
+  const p3 = new THREE.Vector3(
+    p2.x + FK_A3 * Math.cos(a2) * cx,
+    p2.y + FK_A3 * Math.sin(a2),
+    p2.z + FK_A3 * Math.cos(a2) * sx
+  );
+  const p4 = new THREE.Vector3(
+    p3.x + FK_A4 * Math.cos(a3) * cx,
+    p3.y + FK_A4 * Math.sin(a3),
+    p3.z + FK_A4 * Math.cos(a3) * sx
+  );
+
+  return [p0, p1, p2, p3, p4];
+}
+
+function setCylinderBetween(mesh, p1, p2) {
+  const dir = new THREE.Vector3().subVectors(p2, p1);
+  const len = dir.length();
+  mesh.position.copy(p1).lerp(p2, 0.5);
+  if (len > 1e-5) {
+    mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.normalize());
+  }
+}
+
+function updateRobot(step, isFailure) {
+  if (!episodeData) return;
+  const pos = episodeData.joint_positions[step];
+  const joints = computeFK(pos);
+
+  const linkColor  = isFailure ? 0xdd2233 : 0x4a90d9;
+  const jointColor = isFailure ? 0xff4455 : 0x6fb3f5;
+  const eeColor    = isFailure ? 0xff8888 : 0xffffff;
+
+  // Base column
+  baseColumn.position.set(0, FK_D1 / 2, 0);
+  baseColumn.rotation.set(0, 0, 0);
+  baseColumn.material.color.setHex(linkColor);
+
+  // Links 1-3
+  setCylinderBetween(linkMeshes[0], joints[1], joints[2]);
+  setCylinderBetween(linkMeshes[1], joints[2], joints[3]);
+  setCylinderBetween(linkMeshes[2], joints[3], joints[4]);
+  for (const m of linkMeshes) m.material.color.setHex(linkColor);
+
+  // Joint spheres at p1, p2, p3, p4
+  for (let i = 0; i < 4; i++) {
+    jointMeshes[i].position.copy(joints[i + 1]);
+    jointMeshes[i].material.color.setHex(i < 3 ? jointColor : eeColor);
+  }
+
+  // End-effector cone pointing in wrist direction
+  eeMesh.position.copy(joints[4]);
+  const wristDir = new THREE.Vector3().subVectors(joints[4], joints[3]).normalize();
+  eeMesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), wristDir);
+  eeMesh.translateY(0.07);
+  eeMesh.material.color.setHex(eeColor);
+}
+
+function buildGhostTrail() {
+  if (!episodeData) { ghostGeom.setFromPoints([]); return; }
+  const pts = episodeData.joint_positions.map(q => {
+    const j = computeFK(q);
+    return j[4];  // end-effector path
+  });
+  ghostGeom.setFromPoints(pts);
+}
+
+// ── Resize handling ────────────────────────────────────────────────────────────
+function resizeRenderer() {
+  const w = container.clientWidth;
+  const h = container.clientHeight;
+  renderer.setSize(w, h);
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+}
+new ResizeObserver(resizeRenderer).observe(container);
+resizeRenderer();
+
+// ── Animation loop ─────────────────────────────────────────────────────────────
+function animate(timestamp) {
+  requestAnimationFrame(animate);
+  controls.update();
+
+  if (isPlaying && episodeData) {
+    if (lastTimestamp === null) lastTimestamp = timestamp;
+    const wall = (timestamp - lastTimestamp) / 1000;
+    lastTimestamp = timestamp;
+    accumulatedTime += wall * playbackSpeed;
+
+    const stepsToAdvance = Math.floor(accumulatedTime / DT);
+    if (stepsToAdvance > 0) {
+      accumulatedTime -= stepsToAdvance * DT;
+      currentStep = currentStep + stepsToAdvance;
+      if (currentStep >= episodeData.n_timesteps) {
+        currentStep = episodeData.n_timesteps - 1;
+        setPlaying(false);
+      }
+      syncUI();
+    }
+  } else {
+    lastTimestamp = null;
+  }
+
+  const isFailure = episodeData &&
+    episodeData.failure_step >= 0 &&
+    currentStep >= episodeData.failure_step;
+
+  updateRobot(currentStep, isFailure);
+  renderer.render(scene, camera);
+}
+requestAnimationFrame(animate);
+
+// ── Velocity chart ─────────────────────────────────────────────────────────────
+const currentStepPlugin = {
+  id: 'stepLine',
+  afterDraw(chart) {
+    if (!episodeData) return;
+    const { ctx, scales: { x, y } } = chart;
+    const draw = (val, color, dash) => {
+      const px = x.getPixelForValue(val);
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(px, y.top);
+      ctx.lineTo(px, y.bottom);
+      ctx.lineWidth = 1.5;
+      ctx.strokeStyle = color;
+      if (dash) ctx.setLineDash([4, 4]);
+      ctx.stroke();
+      ctx.restore();
+    };
+    if (episodeData.failure_step >= 0)
+      draw(episodeData.failure_step, 'rgba(248,81,73,0.85)', true);
+    draw(currentStep, 'rgba(200,210,220,0.9)', false);
+  }
+};
+
+Chart.register(currentStepPlugin);
+
+const velCtx = document.getElementById('vel-chart').getContext('2d');
+velChart = new Chart(velCtx, {
+  type: 'line',
+  data: { labels: [], datasets: [] },
+  options: {
+    animation: false,
+    responsive: true,
+    maintainAspectRatio: false,
+    interaction: { mode: 'index', intersect: false },
+    plugins: {
+      legend: {
+        labels: { color: '#8b949e', boxWidth: 14, font: { size: 10 } }
+      },
+      tooltip: {
+        backgroundColor: 'rgba(22,27,34,0.95)',
+        titleColor: '#c9d1d9',
+        bodyColor: '#8b949e',
+        borderColor: '#30363d',
+        borderWidth: 1,
+        callbacks: {
+          label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y.toFixed(3)} rad/s`
+        }
+      }
+    },
+    scales: {
+      x: {
+        ticks: { color: '#8b949e', maxTicksLimit: 10, font: { size: 9 } },
+        grid:  { color: '#1a2130' },
+        title: { display: true, text: 'Timestep', color: '#8b949e', font: { size: 10 } },
+      },
+      y: {
+        ticks: { color: '#8b949e', font: { size: 9 } },
+        grid:  { color: '#1a2130' },
+        title: { display: true, text: 'Velocity (rad/s)', color: '#8b949e', font: { size: 10 } },
+      }
+    }
+  }
+});
+
+function loadChartData() {
+  if (!episodeData) return;
+  const n = episodeData.n_timesteps;
+  const labels = Array.from({ length: n }, (_, i) => i);
+  const colors = ['#4a90d9', '#e05c5c', '#5ccca8', '#c889e0'];
+  const datasets = Array.from({ length: 4 }, (_, j) => ({
+    label: `J${j + 1}`,
+    data: episodeData.joint_velocities.map(v => v[j] ?? 0),
+    borderColor: colors[j],
+    backgroundColor: 'transparent',
+    borderWidth: 1.5,
+    pointRadius: 0,
+    tension: 0.2,
+  }));
+
+  // Shade failure region
+  if (episodeData.failure_step >= 0) {
+    datasets.push({
+      label: 'failure zone',
+      data: labels.map(i => i >= episodeData.failure_step ? null : NaN),
+      borderColor: 'transparent',
+      backgroundColor: 'rgba(248,81,73,0.06)',
+      fill: { value: Infinity },
+      pointRadius: 0,
+    });
+  }
+
+  velChart.data.labels   = labels;
+  velChart.data.datasets = datasets;
+  velChart.update('none');
+}
+
+// ── UI sync ────────────────────────────────────────────────────────────────────
+function syncUI() {
+  if (!episodeData) return;
+  const n = episodeData.n_timesteps;
+  const fs = episodeData.failure_step;
+  const isFailure = fs >= 0 && currentStep >= fs;
+
+  // Scrubber
+  document.getElementById('scrubber').value = currentStep;
+  document.getElementById('step-label').textContent =
+    `${currentStep} / ${n - 1}`;
+
+  // HUD
+  const q = episodeData.joint_positions[currentStep];
+  document.getElementById('hud-step').textContent = `${currentStep}`;
+  document.getElementById('hud-j1').textContent   = q[0].toFixed(3);
+  document.getElementById('hud-j2').textContent   = q[1].toFixed(3);
+  document.getElementById('hud-j3').textContent   = q[2].toFixed(3);
+  document.getElementById('hud-j4').textContent   = (q[3] ?? 0).toFixed(3);
+
+  const failLine  = document.getElementById('fail-line');
+  const failLabel = document.getElementById('hud-fail-label');
+  if (isFailure) {
+    failLine.style.display = 'block';
+    failLabel.textContent  = `● ${episodeData.failure_class.toUpperCase()}`;
+  } else {
+    failLine.style.display = 'none';
+  }
+
+  // Failure ring
+  document.getElementById('failure-ring').className =
+    isFailure ? 'active' : '';
+
+  // Chart position
+  velChart.update('none');
+}
+
+function setPlaying(val) {
+  isPlaying = val;
+  document.getElementById('btn-play').textContent = val ? '⏸' : '▶';
+  if (!val) lastTimestamp = null;
+}
+
+// ── Episode loading ────────────────────────────────────────────────────────────
+async function loadEpisode(epId) {
+  try {
+    const res = await fetch(`${API}/api/episodes/${epId}`);
+    if (!res.ok) throw new Error(await res.text());
+    episodeData = await res.json();
+  } catch (err) {
+    console.error('Failed to load episode:', err);
+    return;
+  }
+
+  currentStep    = 0;
+  accumulatedTime = 0;
+  setPlaying(false);
+
+  // Update scrubber range
+  const scrubber = document.getElementById('scrubber');
+  scrubber.max   = episodeData.n_timesteps - 1;
+  scrubber.value = 0;
+
+  // HUD
+  document.getElementById('hud-ep').textContent    = episodeData.id;
+  document.getElementById('hud-class').textContent = episodeData.failure_class;
+  document.getElementById('hud-class').style.color =
+    FAILURE_COLORS[episodeData.failure_class] || '#8b949e';
+
+  buildGhostTrail();
+  loadChartData();
+  syncUI();
+}
+
+// ── Episode list ───────────────────────────────────────────────────────────────
+async function fetchEpisodeList() {
+  const res = await fetch(`${API}/api/episodes`);
+  const eps = await res.json();
+
+  const list = document.getElementById('episode-list');
+  list.innerHTML = '';
+
+  for (const ep of eps) {
+    const div = document.createElement('div');
+    div.className = 'ep-item';
+    div.dataset.id = ep.id;
+
+    const badgeClass = `badge badge-${ep.failure_class.replace(/ /g, '_')}`;
+    div.innerHTML = `
+      <div class="ep-id">${ep.id}</div>
+      <div class="ep-meta">
+        <span class="${badgeClass}">${ep.failure_class}</span>
+        &nbsp;${ep.n_timesteps} steps
+        ${ep.failure_step >= 0 ? `&nbsp;· fail@${ep.failure_step}` : ''}
+      </div>`;
+
+    div.addEventListener('click', async () => {
+      document.querySelectorAll('.ep-item').forEach(e => e.classList.remove('active'));
+      div.classList.add('active');
+      await loadEpisode(ep.id);
+    });
+
+    list.appendChild(div);
+  }
+
+  // Auto-load first episode
+  if (eps.length > 0) {
+    list.firstChild.classList.add('active');
+    await loadEpisode(eps[0].id);
+  }
+}
+
+// ── Control bindings ───────────────────────────────────────────────────────────
+document.getElementById('btn-play').addEventListener('click', () => {
+  if (!episodeData) return;
+  if (currentStep >= episodeData.n_timesteps - 1) currentStep = 0;
+  setPlaying(!isPlaying);
+});
+
+document.getElementById('btn-start').addEventListener('click', () => {
+  currentStep = 0;
+  setPlaying(false);
+  syncUI();
+});
+
+document.getElementById('btn-end').addEventListener('click', () => {
+  if (!episodeData) return;
+  currentStep = episodeData.n_timesteps - 1;
+  setPlaying(false);
+  syncUI();
+});
+
+document.getElementById('scrubber').addEventListener('input', e => {
+  currentStep = parseInt(e.target.value);
+  setPlaying(false);
+  syncUI();
+});
+
+document.getElementById('speed-select').addEventListener('change', e => {
+  playbackSpeed = parseFloat(e.target.value);
+});
+
+// Keyboard shortcuts
+window.addEventListener('keydown', e => {
+  if (!episodeData) return;
+  if (e.code === 'Space') {
+    e.preventDefault();
+    document.getElementById('btn-play').click();
+  } else if (e.code === 'ArrowLeft') {
+    currentStep = Math.max(0, currentStep - 1);
+    setPlaying(false);
+    syncUI();
+  } else if (e.code === 'ArrowRight') {
+    currentStep = Math.min(episodeData.n_timesteps - 1, currentStep + 1);
+    setPlaying(false);
+    syncUI();
+  } else if (e.code === 'Home') {
+    currentStep = 0; setPlaying(false); syncUI();
+  } else if (e.code === 'End') {
+    currentStep = episodeData.n_timesteps - 1; setPlaying(false); syncUI();
+  }
+});
+
+// ── Init ───────────────────────────────────────────────────────────────────────
+fetchEpisodeList();
+</script>
+</body>
+</html>
