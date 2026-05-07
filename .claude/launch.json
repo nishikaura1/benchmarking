@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "robot-viewer",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["robot_viewer/server.py"],
+      "port": 8765
+    }
+  ]
+}
