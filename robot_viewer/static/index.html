@@ -3,61 +3,54 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>AMR Episode Viewer — Human Review</title>
+<title>Robot Vacuum Episode Viewer — Human Review</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script type="importmap">
 {
   "imports": {
-    "three":          "https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.module.js",
-    "three/addons/":  "https://cdn.jsdelivr.net/npm/three@0.158.0/examples/jsm/"
+    "three":         "https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.158.0/examples/jsm/"
   }
 }
 </script>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
-  --bg:      #0b0f17;
-  --panel:   #131923;
-  --panel2:  #1a2332;
-  --border:  #2a3545;
-  --text:    #c8d6e5;
-  --muted:   #6b7f96;
-  --accent:  #3a8fd6;
-  --green:   #27c483;
-  --red:     #e04040;
-  --yellow:  #e8b84b;
-  --purple:  #9b72d6;
-  --teal:    #2ec4b6;
+  --bg:     #0b0f17;
+  --panel:  #131923;
+  --panel2: #1a2332;
+  --border: #2a3545;
+  --text:   #c8d6e5;
+  --muted:  #6b7f96;
+  --accent: #3a8fd6;
+  --green:  #27c483;
+  --red:    #e04040;
+  --yellow: #e8b84b;
+  --purple: #9b72d6;
+  --teal:   #2ec4b6;
 }
-html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(--text);
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 13px; }
+html, body { height:100%; overflow:hidden; background:var(--bg); color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; font-size:13px; }
 
-/* ── Shell ── */
-#app { display: flex; flex-direction: column; height: 100vh; }
+#app { display:flex; flex-direction:column; height:100vh; }
 
-/* ── Header ── */
+/* Header */
 header {
-  display: flex; align-items: center; gap: 10px;
-  padding: 0 14px; height: 46px; flex-shrink: 0;
-  background: var(--panel); border-bottom: 1px solid var(--border);
+  display:flex; align-items:center; gap:10px;
+  padding:0 14px; height:46px; flex-shrink:0;
+  background:var(--panel); border-bottom:1px solid var(--border);
 }
 #menu-btn { background:none; border:none; cursor:pointer; color:var(--muted); font-size:18px; padding:4px 7px; border-radius:4px; line-height:1; }
 #menu-btn:hover { color:var(--text); background:#1e2b3c; }
 header h1 { font-size:14px; font-weight:600; white-space:nowrap; }
-
 .hdr-spacer { flex:1; }
-
-/* Import model button */
 #import-btn {
-  background: #1e2b3c; border: 1px solid var(--border); border-radius:6px;
-  color: var(--accent); cursor: pointer; font-size: 12px; padding: 5px 11px;
-  white-space: nowrap;
+  background:#1e2b3c; border:1px solid var(--border); border-radius:6px;
+  color:var(--accent); cursor:pointer; font-size:12px; padding:5px 11px; white-space:nowrap;
 }
-#import-btn:hover { background: #243548; border-color: var(--accent); }
-#model-name { font-size: 11px; color: var(--muted); max-width: 140px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+#import-btn:hover { background:#243548; border-color:var(--accent); }
+#model-name { font-size:11px; color:var(--muted); max-width:140px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 #file-input { display:none; }
-
-/* Review summary pill */
 #review-summary { display:flex; gap:6px; align-items:center; font-size:11px; }
 .rpill { padding:2px 8px; border-radius:10px; font-weight:600; }
 .rpill-p { background:#1a2a1a; color:var(--muted); }
@@ -65,14 +58,13 @@ header h1 { font-size:14px; font-weight:600; white-space:nowrap; }
 .rpill-r { background:#3a1a1a; color:var(--red); }
 .rpill-f { background:#3a3a1a; color:var(--yellow); }
 
-/* ── Main ── */
+/* Main */
 #main { display:flex; flex:1; overflow:hidden; position:relative; }
 
-/* ── Sidebar (overlay drawer) ── */
+/* Sidebar */
 #sidebar {
   position:absolute; top:0; left:0; bottom:0; z-index:30;
-  width:230px;
-  background:rgba(14,20,30,0.97);
+  width:240px; background:rgba(14,20,30,0.97);
   border-right:1px solid var(--border);
   display:flex; flex-direction:column; overflow:hidden;
   transform:translateX(-100%);
@@ -80,9 +72,11 @@ header h1 { font-size:14px; font-weight:600; white-space:nowrap; }
   backdrop-filter:blur(10px);
 }
 #sidebar.open { transform:translateX(0); box-shadow:6px 0 30px rgba(0,0,0,.65); }
-#sidebar-hdr { padding:10px 12px 8px; font-size:10px; font-weight:700; color:var(--muted);
+#sidebar-hdr {
+  padding:10px 12px 8px; font-size:10px; font-weight:700; color:var(--muted);
   text-transform:uppercase; letter-spacing:1px; border-bottom:1px solid var(--border);
-  display:flex; justify-content:space-between; align-items:center; }
+  display:flex; justify-content:space-between; align-items:center;
+}
 #sidebar-close { background:none; border:none; color:var(--muted); cursor:pointer; font-size:14px; }
 #ep-list { overflow-y:auto; flex:1; }
 .ep { padding:9px 12px; cursor:pointer; border-bottom:1px solid #1a2535; display:flex; flex-direction:column; gap:3px; }
@@ -91,31 +85,32 @@ header h1 { font-size:14px; font-weight:600; white-space:nowrap; }
 .ep-top { display:flex; align-items:center; gap:6px; }
 .ep-id { font-size:12px; font-weight:600; font-family:monospace; }
 .ep-sub { font-size:10px; color:var(--muted); }
-/* Review status dot */
+.ep-desc { font-size:10px; color:#4a5e72; line-height:1.3; }
 .rdot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
-.rdot-pending  { background:#334; }
-.rdot-approve  { background:var(--green); }
-.rdot-reject   { background:var(--red); }
-.rdot-flag     { background:var(--yellow); }
+.rdot-pending { background:#334; }
+.rdot-approve { background:var(--green); }
+.rdot-reject  { background:var(--red); }
+.rdot-flag    { background:var(--yellow); }
 
-/* Failure class badges */
+/* Failure badges */
 .badge { display:inline-block; padding:1px 6px; border-radius:8px; font-size:10px; font-weight:600; white-space:nowrap; }
-.b-nominal        { background:#1a3a28; color:var(--green); }
-.b-e_stop         { background:#3a1a1a; color:#ff7070; }
-.b-oscillation    { background:#2d1a4a; color:#b080ff; }
-.b-path_deviation { background:#0d2d4a; color:#70b0ff; }
-.b-overspeed      { background:#3d2800; color:var(--yellow); }
-.b-timeout        { background:#2a2a2a; color:var(--muted); }
-.b-unknown        { background:#222; color:var(--muted); }
+.b-nominal      { background:#1a3a28; color:var(--green); }
+.b-stuck_corner { background:#2d1a4a; color:#b080ff; }
+.b-missed_zone  { background:#0d2d4a; color:#70b0ff; }
+.b-cliff_error  { background:#3a1a1a; color:#ff7070; }
+.b-low_battery  { background:#2a2a2a; color:var(--muted); }
+.b-wheel_slip   { background:#3d2800; color:var(--yellow); }
+.b-tangled      { background:#2a1500; color:#ff9040; }
+.b-return_fail  { background:#1a0a2a; color:#aa60ff; }
+.b-unknown      { background:#222; color:var(--muted); }
 
-/* Scrim */
 #scrim { display:none; position:absolute; inset:0; z-index:29; }
 #scrim.on { display:block; }
 
-/* ── Right column ── */
+/* Right column */
 #right { flex:1; display:flex; flex-direction:column; overflow:hidden; min-width:0; }
 
-/* ── 3D Viewer ── */
+/* 3D Viewer */
 #viewer { position:relative; flex:1; min-height:0; background:#060a10; }
 #viewer canvas { display:block; }
 
@@ -123,16 +118,16 @@ header h1 { font-size:14px; font-weight:600; white-space:nowrap; }
 #hud {
   position:absolute; top:10px; left:10px;
   background:rgba(8,14,24,0.88); border:1px solid #2a3a50;
-  border-radius:8px; padding:9px 13px; font-size:11px; line-height:1.8;
-  pointer-events:none; min-width:175px; backdrop-filter:blur(6px);
+  border-radius:8px; padding:9px 13px; font-size:11px; line-height:1.85;
+  pointer-events:none; min-width:180px; backdrop-filter:blur(6px);
 }
 .hl { color:var(--muted); margin-right:4px; }
 .hv { font-family:monospace; color:var(--text); }
 #hud-class-val { font-weight:600; }
-#hud-fail { display:none; font-weight:700; color:var(--red); margin-top:2px; }
+#hud-fail { display:none; font-weight:700; color:var(--red); margin-top:2px; font-size:10px; }
 #hud-ok   { display:none; font-size:10px; color:var(--green); }
 
-/* Legend (bottom-right of 3D view) */
+/* Legend */
 #legend {
   position:absolute; bottom:10px; right:10px;
   background:rgba(8,14,24,0.82); border:1px solid #2a3a50;
@@ -142,49 +137,75 @@ header h1 { font-size:14px; font-weight:600; white-space:nowrap; }
 #legend .leg-row { display:flex; align-items:center; gap:6px; }
 .leg-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
 
-/* Failure glow overlay */
-#fail-ring { position:absolute; inset:0; pointer-events:none;
-  box-shadow:inset 0 0 0 transparent; transition:box-shadow .15s; }
+/* Failure glow ring */
+#fail-ring { position:absolute; inset:0; pointer-events:none; box-shadow:inset 0 0 0 transparent; transition:box-shadow .15s; }
 #fail-ring.on { box-shadow:inset 0 0 50px rgba(224,64,64,.22); border:2px solid rgba(224,64,64,.3); }
 
-/* ── Chart ── */
-#chart-wrap { height:140px; flex-shrink:0; border-top:1px solid var(--border); padding:6px 14px 4px; background:#0b0f17; }
+/* Drop hint */
+#drop-hint { position:absolute; inset:0; display:none; align-items:center; justify-content:center;
+  background:rgba(8,14,24,.85); z-index:50; flex-direction:column; gap:10px;
+  font-size:15px; color:var(--accent); border:2px dashed var(--accent); border-radius:4px; }
+#drop-hint.on { display:flex; }
+
+/* Chart */
+#chart-wrap { height:130px; flex-shrink:0; border-top:1px solid var(--border); padding:5px 14px 4px; background:#0b0f17; }
 #vel-chart { width:100%!important; height:100%!important; }
 
-/* ── Review panel ── */
+/* ── Flag Review Panel ── */
+#flag-panel {
+  display:none; flex-shrink:0;
+  background:rgba(40,28,0,0.65); border-top:2px solid #806020;
+  padding:8px 12px 6px;
+}
+#flag-panel.visible { display:block; }
+#flag-banner {
+  font-size:11px; font-weight:700; color:var(--yellow);
+  display:flex; align-items:center; gap:6px; margin-bottom:6px;
+}
+#flag-banner span.flag-icon { font-size:14px; }
+#flag-chips { display:flex; flex-wrap:wrap; gap:5px; }
+.flag-chip {
+  padding:2px 9px; border-radius:10px;
+  background:#2a2010; border:1px solid #504018;
+  color:var(--yellow); font-size:10px; cursor:pointer; transition:all .1s;
+  user-select:none;
+}
+.flag-chip:hover { background:#382c12; border-color:#806020; }
+.flag-chip.active { background:#503c14; border-color:var(--yellow); font-weight:700; }
+
+/* ── Review Panel ── */
 #review-panel {
   flex-shrink:0; border-top:1px solid var(--border);
-  background:var(--panel); padding:8px 12px;
-  display:flex; flex-direction:column; gap:7px;
+  background:var(--panel); padding:7px 12px;
+  display:flex; flex-direction:column; gap:6px;
 }
 #review-top { display:flex; align-items:center; gap:8px; }
 #review-label { font-size:11px; color:var(--muted); font-weight:600; white-space:nowrap; }
 .rev-btn {
-  padding:5px 14px; border-radius:6px; border:1px solid transparent;
+  padding:5px 13px; border-radius:6px; border:1px solid transparent;
   font-size:12px; font-weight:600; cursor:pointer; transition:all .12s;
 }
 .rev-btn.approve { background:#152a1e; border-color:#2a6040; color:var(--green); }
 .rev-btn.approve:hover, .rev-btn.approve.active { background:#1e4030; border-color:var(--green); }
 .rev-btn.reject  { background:#2a1515; border-color:#60302a; color:var(--red); }
-.rev-btn.reject:hover, .rev-btn.reject.active  { background:#401e1e; border-color:var(--red); }
+.rev-btn.reject:hover,  .rev-btn.reject.active  { background:#401e1e; border-color:var(--red); }
 .rev-btn.flag    { background:#2a2510; border-color:#60501a; color:var(--yellow); }
-.rev-btn.flag:hover, .rev-btn.flag.active    { background:#403510; border-color:var(--yellow); }
-#prev-label { font-size:11px; }
+.rev-btn.flag:hover,    .rev-btn.flag.active    { background:#403510; border-color:var(--yellow); }
+#prev-label { font-size:11px; margin-left:auto; }
 #review-bottom { display:flex; gap:8px; align-items:stretch; }
 #rev-notes {
   flex:1; background:#0d1520; border:1px solid var(--border); border-radius:6px;
-  color:var(--text); font-size:11px; padding:5px 9px; resize:none; height:32px;
-  font-family:inherit;
+  color:var(--text); font-size:11px; padding:5px 9px; resize:none; height:30px; font-family:inherit;
 }
 #rev-notes:focus { outline:none; border-color:var(--accent); }
 #btn-submit {
   background:var(--accent); border:none; border-radius:6px; color:#fff;
-  font-size:12px; font-weight:600; cursor:pointer; padding:0 16px; white-space:nowrap;
+  font-size:12px; font-weight:600; cursor:pointer; padding:0 14px; white-space:nowrap;
 }
 #btn-submit:hover { background:#4a9fe6; }
 #btn-submit:disabled { background:#2a3a50; color:var(--muted); cursor:default; }
 
-/* ── Playback controls ── */
+/* Playback bar */
 #ctrl-bar {
   height:40px; flex-shrink:0; display:flex; align-items:center; gap:8px;
   padding:0 12px; background:var(--panel); border-top:1px solid var(--border);
@@ -197,12 +218,6 @@ header h1 { font-size:14px; font-weight:600; white-space:nowrap; }
 #step-disp { font-size:11px; color:var(--muted); font-family:monospace; min-width:68px; text-align:right; }
 #speed-sel { background:#1e2b3c; border:1px solid var(--border); border-radius:5px;
   color:var(--text); font-size:11px; padding:2px 5px; cursor:pointer; }
-
-/* Drop zone hint */
-#drop-hint { position:absolute; inset:0; display:none; align-items:center; justify-content:center;
-  background:rgba(8,14,24,.85); z-index:50; flex-direction:column; gap:10px;
-  font-size:15px; color:var(--accent); border:2px dashed var(--accent); border-radius:4px; }
-#drop-hint.on { display:flex; }
 </style>
 </head>
 <body>
@@ -210,8 +225,8 @@ header h1 { font-size:14px; font-weight:600; white-space:nowrap; }
 
   <header>
     <button id="menu-btn" title="Episode list">&#9776;</button>
-    <h1>AMR Episode Viewer</h1>
-    <span style="font-size:11px;color:var(--muted);margin-left:4px;">Human Review</span>
+    <h1>Robot Vacuum — Episode Viewer</h1>
+    <span style="font-size:11px;color:var(--muted);margin-left:2px;">Human Review</span>
     <div class="hdr-spacer"></div>
     <div id="review-summary">
       <span class="rpill rpill-p" id="pill-p">… pending</span>
@@ -221,15 +236,14 @@ header h1 { font-size:14px; font-weight:600; white-space:nowrap; }
     </div>
     <div style="width:1px;height:20px;background:var(--border);margin:0 6px"></div>
     <button id="import-btn">&#8593; Import Model</button>
-    <span id="model-name">Default TurtleBot3</span>
+    <span id="model-name">Robot Vacuum</span>
     <input type="file" id="file-input" accept=".glb,.gltf,.obj" />
   </header>
 
   <div id="main">
-    <!-- Overlay sidebar -->
     <div id="sidebar">
       <div id="sidebar-hdr">
-        <span>Episodes (24)</span>
+        <span>Episodes (8)</span>
         <button id="sidebar-close">&#10005;</button>
       </div>
       <div id="ep-list"></div>
@@ -237,7 +251,6 @@ header h1 { font-size:14px; font-weight:600; white-space:nowrap; }
     <div id="scrim"></div>
 
     <div id="right">
-      <!-- 3D Viewer -->
       <div id="viewer">
         <div id="hud">
           <div><span class="hl">Episode</span><span class="hv" id="hud-ep">—</span></div>
@@ -245,13 +258,13 @@ header h1 { font-size:14px; font-weight:600; white-space:nowrap; }
           <div><span class="hl">Step&nbsp;&nbsp;&nbsp;</span><span class="hv" id="hud-step">—</span></div>
           <div><span class="hl">Pos&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="hv" id="hud-pos">—</span></div>
           <div><span class="hl">Speed&nbsp;&nbsp;</span><span class="hv" id="hud-vel">—</span></div>
-          <div id="hud-fail">&#9679; FAILURE DETECTED</div>
+          <div id="hud-fail">&#9679; FAILURE</div>
           <div id="hud-ok">&#10003; NOMINAL</div>
         </div>
         <div id="legend">
-          <div class="leg-row"><div class="leg-dot" style="background:#27c483"></div> Slow (&lt;0.4 m/s)</div>
+          <div class="leg-row"><div class="leg-dot" style="background:#27c483"></div> Slow (&lt;0.2 m/s)</div>
           <div class="leg-row"><div class="leg-dot" style="background:#e8b84b"></div> Medium</div>
-          <div class="leg-row"><div class="leg-dot" style="background:#e04040"></div> Fast (&gt;1.0 m/s)</div>
+          <div class="leg-row"><div class="leg-dot" style="background:#e04040"></div> Fast</div>
           <div class="leg-row"><div class="leg-dot" style="background:#3366aa"></div> Planned path</div>
           <div class="leg-row"><div class="leg-dot" style="background:#ffcc00"></div> Waypoint</div>
         </div>
@@ -262,9 +275,24 @@ header h1 { font-size:14px; font-weight:600; white-space:nowrap; }
         </div>
       </div>
 
-      <!-- Velocity chart -->
       <div id="chart-wrap">
         <canvas id="vel-chart"></canvas>
+      </div>
+
+      <!-- Flag review panel (shows only for flagged episodes) -->
+      <div id="flag-panel">
+        <div id="flag-banner">
+          <span class="flag-icon">⚑</span>
+          <span>FLAG REVIEW REQUIRED — select a reason label:</span>
+        </div>
+        <div id="flag-chips">
+          <span class="flag-chip" data-reason="Stuck / Trapped">Stuck / Trapped</span>
+          <span class="flag-chip" data-reason="Missed Coverage">Missed Coverage</span>
+          <span class="flag-chip" data-reason="Sensor Glitch">Sensor Glitch</span>
+          <span class="flag-chip" data-reason="Mechanical Issue">Mechanical Issue</span>
+          <span class="flag-chip" data-reason="Navigation Lost">Navigation Lost</span>
+          <span class="flag-chip" data-reason="Needs Reinspection">Reinspect</span>
+        </div>
       </div>
 
       <!-- Review panel -->
@@ -282,7 +310,6 @@ header h1 { font-size:14px; font-weight:600; white-space:nowrap; }
         </div>
       </div>
 
-      <!-- Playback bar -->
       <div id="ctrl-bar">
         <button class="cbtn" id="btn-start">&#9198;</button>
         <button class="cbtn" id="btn-play">&#9654;</button>
@@ -303,44 +330,44 @@ header h1 { font-size:14px; font-weight:600; white-space:nowrap; }
 
 <script type="module">
 import * as THREE from 'three';
-import { OrbitControls }  from 'three/addons/controls/OrbitControls.js';
-import { GLTFLoader }     from 'three/addons/loaders/GLTFLoader.js';
-import { OBJLoader }      from 'three/addons/loaders/OBJLoader.js';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { GLTFLoader }    from 'three/addons/loaders/GLTFLoader.js';
+import { OBJLoader }     from 'three/addons/loaders/OBJLoader.js';
 
-// ── State ────────────────────────────────────────────────────────────────────
-const DT           = 0.02;
-const TRAIL_STEPS  = 60;
-const MAX_SPEED    = 1.2;
-let episodeData    = null;
-let currentStep    = 0;
-let isPlaying      = false;
-let playSpeed      = 1.0;
-let lastTS         = null;
-let accTime        = 0;
-let pendingDecision = null;   // "approve" | "reject" | "flag"
-let robotModel     = null;    // current 3D model in scene
-let leftWheelMesh  = null;
+// ── State ─────────────────────────────────────────────────────────────────────
+const DT          = 0.02;
+const TRAIL_STEPS = 80;
+const MAX_SPEED   = 0.55;
+let episodeData   = null;
+let currentStep   = 0;
+let isPlaying     = false;
+let playSpeed     = 1.0;
+let lastTS        = null;
+let accTime       = 0;
+let pendingDecision = null;
+let robotModel    = null;
+let leftWheelMesh = null;
 let rightWheelMesh = null;
-let lidarMesh      = null;
-let wheelRotation  = 0;
+let sideBrushMesh = null;   // spinning side brush
+let statusLedMat  = null;   // LED ring material (to change color on failure)
+let wheelRotation = 0;
 
 // ── Three.js setup ────────────────────────────────────────────────────────────
 const viewer   = document.getElementById('viewer');
-const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.1;
+renderer.toneMappingExposure = 1.15;
 renderer.setClearColor(0x060a10);
 viewer.appendChild(renderer.domElement);
 
-const scene  = new THREE.Scene();
-scene.fog    = new THREE.FogExp2(0x060a10, 0.04);
+const scene = new THREE.Scene();
+scene.fog   = new THREE.FogExp2(0x060a10, 0.035);
 
-// Camera: elevated isometric view for top-down navigation
-const camera = new THREE.PerspectiveCamera(48, 1, 0.05, 80);
-camera.position.set(4, 9, 9);
+const camera = new THREE.PerspectiveCamera(50, 1, 0.05, 80);
+camera.position.set(3, 7, 7);
 
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.target.set(0, 0, 0);
@@ -348,13 +375,13 @@ controls.enableDamping = true;
 controls.dampingFactor = 0.06;
 controls.minDistance   = 1;
 controls.maxDistance   = 25;
-controls.maxPolarAngle = Math.PI / 2 - 0.05;  // prevent going below floor
+controls.maxPolarAngle = Math.PI / 2 - 0.04;
 controls.update();
 
 // ── Lighting ──────────────────────────────────────────────────────────────────
-scene.add(new THREE.AmbientLight(0x8899bb, 0.7));
-const sun = new THREE.DirectionalLight(0xfff5e8, 0.95);
-sun.position.set(6, 12, 8);
+scene.add(new THREE.AmbientLight(0x8899bb, 0.75));
+const sun = new THREE.DirectionalLight(0xfff5e8, 1.0);
+sun.position.set(5, 12, 7);
 sun.castShadow = true;
 sun.shadow.mapSize.set(2048, 2048);
 sun.shadow.camera.near = 0.5;
@@ -362,158 +389,228 @@ sun.shadow.camera.far  = 40;
 sun.shadow.camera.left = sun.shadow.camera.bottom = -12;
 sun.shadow.camera.right = sun.shadow.camera.top   =  12;
 scene.add(sun);
-const fillLight = new THREE.DirectionalLight(0x4466aa, 0.3);
-fillLight.position.set(-5, 4, -5);
+const fillLight = new THREE.DirectionalLight(0x4466bb, 0.35);
+fillLight.position.set(-6, 5, -5);
 scene.add(fillLight);
 
 // ── Floor ─────────────────────────────────────────────────────────────────────
-const floorGeo = new THREE.PlaneGeometry(20, 20);
-const floorMat = new THREE.MeshStandardMaterial({
-  color: 0x0d1520, roughness: 0.85, metalness: 0.05
-});
-const floor = new THREE.Mesh(floorGeo, floorMat);
+const floorMat = new THREE.MeshStandardMaterial({ color: 0x0e1520, roughness: 0.8, metalness: 0.05 });
+const floor = new THREE.Mesh(new THREE.PlaneGeometry(24, 24), floorMat);
 floor.rotation.x = -Math.PI / 2;
 floor.receiveShadow = true;
 scene.add(floor);
 
-const grid = new THREE.GridHelper(20, 40, 0x1a2535, 0x101820);
+const grid = new THREE.GridHelper(24, 48, 0x1a2535, 0x0f1820);
 grid.position.y = 0.001;
 scene.add(grid);
 
-// ── Scene objects for trajectory ──────────────────────────────────────────────
-// Planned path (dashed line)
+// ── Trajectory objects ────────────────────────────────────────────────────────
 const plannedGeo  = new THREE.BufferGeometry();
-const plannedMat  = new THREE.LineDashedMaterial({ color: 0x2255aa, dashSize: 0.12, gapSize: 0.08, transparent: true, opacity: 0.6 });
+const plannedMat  = new THREE.LineDashedMaterial({ color: 0x2255aa, dashSize: 0.1, gapSize: 0.07, transparent: true, opacity: 0.55 });
 const plannedLine = new THREE.Line(plannedGeo, plannedMat);
 scene.add(plannedLine);
 
-// Full episode trajectory (colored by speed)
 const trajGeo  = new THREE.BufferGeometry();
-const trajMat  = new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.5 });
+const trajMat  = new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.45 });
 const trajLine = new THREE.Line(trajGeo, trajMat);
 scene.add(trajLine);
 
-// Active trail (last N steps, brighter)
 const trailGeo  = new THREE.BufferGeometry();
-const trailMat  = new THREE.LineBasicMaterial({ vertexColors: true, linewidth: 2 });
+const trailMat  = new THREE.LineBasicMaterial({ vertexColors: true });
 const trailLine = new THREE.Line(trailGeo, trailMat);
 scene.add(trailLine);
 
-// Waypoint markers group
 const waypointGroup = new THREE.Group();
 scene.add(waypointGroup);
 
-// Current position heading arrow
-const arrowHelper = new THREE.ArrowHelper(
-  new THREE.Vector3(1, 0, 0), new THREE.Vector3(0, 0.6, 0), 0.55, 0x00ff88, 0.14, 0.1
-);
-scene.add(arrowHelper);
-
-// ── Colour by speed helper ────────────────────────────────────────────────────
+// ── Speed → color ─────────────────────────────────────────────────────────────
 function speedColor(v) {
   const t = Math.min(1, v / MAX_SPEED);
-  if (t < 0.5) return [t * 2 * 0.9, 0.77 + t * 0.3, t * 2 * 0.2];   // green → yellow
+  if (t < 0.5) return [t * 2 * 0.88, 0.77 + t * 0.3, t * 0.18];
   const s = (t - 0.5) * 2;
-  return [0.88 + s * 0.12, 0.77 * (1 - s), 0.2 * (1 - s)];           // yellow → red
+  return [0.88 + s * 0.12, 0.77 * (1 - s), 0.18 * (1 - s)];
 }
 
-// ── Build procedural TurtleBot3-style AMR ─────────────────────────────────────
-function buildDefaultAMR() {
-  const g = new THREE.Group();
+// ── Procedural Robot Vacuum model ────────────────────────────────────────────
+function buildRobotVacuum() {
+  const g    = new THREE.Group();
+  const R    = 0.175;   // body radius  (35 cm diameter)
+  const H    = 0.088;   // body height  (8.8 cm)
+  const yOff = H / 2;   // floor offset
 
-  const plateMat = new THREE.MeshStandardMaterial({ color: 0x1e304a, metalness: 0.55, roughness: 0.35 });
-  const darkMat  = new THREE.MeshStandardMaterial({ color: 0x111820, roughness: 0.9 });
-  const accentMat = new THREE.MeshStandardMaterial({ color: 0x2a6ec2, metalness: 0.4, emissive: 0x0a2244, emissiveIntensity: 0.5 });
-  const greenMat = new THREE.MeshStandardMaterial({ color: 0x00d070, emissive: 0x003322, emissiveIntensity: 0.8 });
+  // ── Materials
+  const bodyMat   = new THREE.MeshStandardMaterial({ color: 0x1c1c1e, roughness: 0.55, metalness: 0.25 });
+  const topMat    = new THREE.MeshStandardMaterial({ color: 0x252528, roughness: 0.38, metalness: 0.32 });
+  const bumperMat = new THREE.MeshStandardMaterial({ color: 0x0e0e10, roughness: 0.78 });
+  const wheelMat  = new THREE.MeshStandardMaterial({ color: 0x080808, roughness: 0.92 });
+  const silverMat = new THREE.MeshStandardMaterial({ color: 0x7a7a88, roughness: 0.3, metalness: 0.75 });
+  const sensorMat = new THREE.MeshStandardMaterial({ color: 0x0a1826, roughness: 0.1, metalness: 0.9 });
+  const brushMat  = new THREE.MeshStandardMaterial({ color: 0x282010, roughness: 0.88 });
+  statusLedMat    = new THREE.MeshStandardMaterial({ color: 0x00ee55, emissive: 0x009933, emissiveIntensity: 1.2 });
 
-  // Bottom plate
-  const bot = new THREE.Mesh(new THREE.CylinderGeometry(0.19, 0.19, 0.025, 32), plateMat.clone());
-  bot.position.y = 0.1; bot.castShadow = true; g.add(bot);
+  // ── Main body cylinder
+  const body = new THREE.Mesh(new THREE.CylinderGeometry(R, R, H, 48), bodyMat);
+  body.position.y = yOff;
+  body.castShadow = true;
+  g.add(body);
 
-  // Top plate
-  const top = new THREE.Mesh(new THREE.CylinderGeometry(0.165, 0.165, 0.025, 32), plateMat.clone());
-  top.position.y = 0.235; top.castShadow = true; g.add(top);
+  // ── Top face disc (slightly lighter, sits on top of body)
+  const topDisc = new THREE.Mesh(new THREE.CylinderGeometry(R - 0.003, R - 0.003, 0.004, 48), topMat);
+  topDisc.position.y = H + 0.002;
+  g.add(topDisc);
 
-  // Accent ring
-  const ring = new THREE.Mesh(new THREE.TorusGeometry(0.19, 0.008, 8, 40), accentMat);
-  ring.rotation.x = Math.PI / 2; ring.position.y = 0.1; g.add(ring);
+  // ── Outer bumper ring (slightly proud of body)
+  const bumper = new THREE.Mesh(new THREE.TorusGeometry(R + 0.003, 0.011, 8, 56), bumperMat);
+  bumper.rotation.x = Math.PI / 2;
+  bumper.position.y = yOff;
+  bumper.castShadow = true;
+  g.add(bumper);
 
-  // Support pillars
-  const pillarGeo = new THREE.CylinderGeometry(0.012, 0.012, 0.135, 8);
-  const pillarMat = new THREE.MeshStandardMaterial({ color: 0x555566 });
-  for (const [px, pz] of [[0.1,0.1],[-0.1,0.1],[0.1,-0.1],[-0.1,-0.1]]) {
-    const p = new THREE.Mesh(pillarGeo, pillarMat);
-    p.position.set(px, 0.168, pz); g.add(p);
-  }
+  // ── Silver trim ring on top edge
+  const trim = new THREE.Mesh(new THREE.TorusGeometry(R - 0.012, 0.005, 6, 56), silverMat);
+  trim.rotation.x = Math.PI / 2;
+  trim.position.y = H + 0.004;
+  g.add(trim);
 
-  // Drive wheels (left +Z, right -Z in robot local frame)
-  const wheelGeo = new THREE.CylinderGeometry(0.034, 0.034, 0.022, 20);
-  wheelGeo.rotateX(Math.PI / 2);  // axis now in Z direction
-  const wheelMat = new THREE.MeshStandardMaterial({ color: 0x0d1018, roughness: 0.95 });
-  const treadMat = new THREE.MeshStandardMaterial({ color: 0x1a2228, roughness: 1.0 });
+  // ── LED status ring (green/red indicator)
+  const ledRing = new THREE.Mesh(new THREE.TorusGeometry(0.052, 0.008, 6, 40), statusLedMat);
+  ledRing.rotation.x = Math.PI / 2;
+  ledRing.position.y = H + 0.007;
+  g.add(ledRing);
 
-  leftWheelMesh  = new THREE.Mesh(wheelGeo, wheelMat); leftWheelMesh.position.set(0, 0.09, 0.2);  leftWheelMesh.castShadow = true; g.add(leftWheelMesh);
-  rightWheelMesh = new THREE.Mesh(wheelGeo, wheelMat); rightWheelMesh.position.set(0, 0.09, -0.2); rightWheelMesh.castShadow = true; g.add(rightWheelMesh);
+  // ── Clean button (center top)
+  const btn = new THREE.Mesh(new THREE.CylinderGeometry(0.030, 0.030, 0.007, 28), topMat);
+  btn.position.y = H + 0.007;
+  g.add(btn);
+  const btnInner = new THREE.Mesh(new THREE.CylinderGeometry(0.019, 0.019, 0.002, 28), silverMat);
+  btnInner.position.y = H + 0.012;
+  g.add(btnInner);
 
-  // Caster balls (front / back)
-  const castGeo = new THREE.SphereGeometry(0.026, 10, 10);
-  for (const [px, pz] of [[0.12, 0], [-0.12, 0]]) {
-    const c = new THREE.Mesh(castGeo, treadMat); c.position.set(px, 0.026, pz); g.add(c);
-  }
-
-  // Sensor tower
-  const towerGeo = new THREE.CylinderGeometry(0.018, 0.018, 0.15, 10);
-  const towerMat = new THREE.MeshStandardMaterial({ color: 0x2a3040 });
-  const tower = new THREE.Mesh(towerGeo, towerMat); tower.position.y = 0.322; g.add(tower);
-
-  // LiDAR (spinning)
-  const lidarGeo = new THREE.CylinderGeometry(0.045, 0.045, 0.04, 16);
-  lidarMesh = new THREE.Mesh(lidarGeo, new THREE.MeshStandardMaterial({ color: 0x0a0e14, metalness: 0.8 }));
-  lidarMesh.position.y = 0.417; lidarMesh.castShadow = true; g.add(lidarMesh);
-
-  // LiDAR window stripe
+  // ── Forward direction stripe on top (shows heading clearly)
   const stripe = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.047, 0.047, 0.008, 16, 1, true),
-    new THREE.MeshStandardMaterial({ color: 0x224466, transparent: true, opacity: 0.7, side: THREE.FrontSide })
+    new THREE.BoxGeometry(R * 0.42, 0.004, 0.014),
+    new THREE.MeshStandardMaterial({ color: 0x2a7fd6, emissive: 0x0a3060, emissiveIntensity: 0.9 })
   );
-  stripe.position.y = 0.417; g.add(stripe);
+  stripe.position.set(R * 0.5, H + 0.004, 0);
+  g.add(stripe);
 
-  // Heading indicator (green wedge at front)
-  const arwGeo = new THREE.ConeGeometry(0.025, 0.07, 8);
-  arwGeo.rotateZ(-Math.PI / 2);
-  const arw = new THREE.Mesh(arwGeo, greenMat);
-  arw.position.set(0.2, 0.1, 0); g.add(arw);
+  // ── Front camera / obstacle sensor window (on bumper, faces +X = forward)
+  const camWindow = new THREE.Mesh(
+    new THREE.BoxGeometry(0.007, 0.020, 0.032),
+    sensorMat
+  );
+  camWindow.position.set(R + 0.003, yOff + 0.012, 0);
+  g.add(camWindow);
+
+  // ── IR emitter dots flanking camera
+  for (const zOff of [-0.048, 0.048]) {
+    const ir = new THREE.Mesh(new THREE.SphereGeometry(0.005, 8, 8),
+      new THREE.MeshStandardMaterial({ color: 0x330000, emissive: 0x550000, emissiveIntensity: 0.6 }));
+    ir.position.set(R + 0.002, yOff + 0.012, zOff);
+    g.add(ir);
+  }
+
+  // ── Drive wheels (left: +Z side, right: −Z side)
+  const wheelGeo = new THREE.CylinderGeometry(0.036, 0.036, 0.022, 22);
+  wheelGeo.rotateX(Math.PI / 2);   // axle along Z
+
+  leftWheelMesh  = new THREE.Mesh(wheelGeo, wheelMat);
+  rightWheelMesh = new THREE.Mesh(wheelGeo, wheelMat);
+  leftWheelMesh.position.set(0, 0.024, R * 0.84);
+  rightWheelMesh.position.set(0, 0.024, -(R * 0.84));
+  leftWheelMesh.castShadow = rightWheelMesh.castShadow = true;
+  g.add(leftWheelMesh);
+  g.add(rightWheelMesh);
+
+  // Wheel cover arcs (visual well around each wheel)
+  for (const zSign of [1, -1]) {
+    const wc = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.038, 0.038, 0.026, 22),
+      new THREE.MeshStandardMaterial({ color: 0x0a0a0c, roughness: 1.0 })
+    );
+    wc.rotation.x = Math.PI / 2;
+    wc.position.set(0, 0.024, zSign * R * 0.84);
+    g.add(wc);
+  }
+
+  // ── Front castor (ball caster)
+  const castor = new THREE.Mesh(new THREE.SphereGeometry(0.017, 12, 12), wheelMat);
+  castor.position.set(R * 0.73, 0.017, 0);
+  g.add(castor);
+
+  // ── Side brush (front-left, spins around Y)
+  sideBrushMesh = new THREE.Group();
+  sideBrushMesh.position.set(R * 0.52, 0.005, R * 0.58);
+  const brushHub = new THREE.Mesh(new THREE.CylinderGeometry(0.011, 0.011, 0.009, 10), bumperMat);
+  sideBrushMesh.add(brushHub);
+  for (let i = 0; i < 3; i++) {
+    const ang = (i / 3) * Math.PI * 2;
+    const arm = new THREE.Mesh(
+      new THREE.BoxGeometry(0.042, 0.004, 0.006),
+      brushMat
+    );
+    arm.position.set(Math.cos(ang) * 0.021, 0.001, Math.sin(ang) * 0.021);
+    arm.rotation.y = ang;
+    sideBrushMesh.add(arm);
+  }
+  g.add(sideBrushMesh);
+
+  // ── Exhaust vents (rear of body)
+  for (let i = -1; i <= 1; i++) {
+    const vent = new THREE.Mesh(
+      new THREE.BoxGeometry(0.007, H * 0.32, 0.011),
+      bumperMat
+    );
+    vent.position.set(-R * 0.88, yOff, i * 0.024);
+    g.add(vent);
+  }
+
+  // ── Dustbin panel indicator (rear arc, different shade)
+  const dustbin = new THREE.Mesh(
+    new THREE.CylinderGeometry(R - 0.004, R - 0.004, H - 0.008, 48, 1, true, Math.PI * 0.65, Math.PI * 0.70),
+    new THREE.MeshStandardMaterial({ color: 0x141416, roughness: 0.6, side: THREE.BackSide })
+  );
+  dustbin.position.y = yOff;
+  g.add(dustbin);
+
+  // ── Status LEDs on top (amber = dirty sensor, blue = wifi)
+  const dirtLed = new THREE.Mesh(new THREE.CylinderGeometry(0.004, 0.004, 0.003, 8),
+    new THREE.MeshStandardMaterial({ color: 0xff8800, emissive: 0xff5500, emissiveIntensity: 0.7 }));
+  dirtLed.position.set(0.065, H + 0.007, 0.055);
+  g.add(dirtLed);
+
+  const wifiLed = new THREE.Mesh(new THREE.CylinderGeometry(0.004, 0.004, 0.003, 8),
+    new THREE.MeshStandardMaterial({ color: 0x0088ff, emissive: 0x0044cc, emissiveIntensity: 0.7 }));
+  wifiLed.position.set(-0.065, H + 0.007, 0.055);
+  g.add(wifiLed);
 
   return g;
 }
 
-// ── Place / replace robot model in scene ─────────────────────────────────────
-function setRobotModel(newModel) {
+// ── Place / replace model ─────────────────────────────────────────────────────
+function setRobotModel(m) {
   if (robotModel) scene.remove(robotModel);
-  robotModel = newModel;
+  robotModel = m;
   scene.add(robotModel);
 }
-setRobotModel(buildDefaultAMR());
+setRobotModel(buildRobotVacuum());
 
-// ── GLTF / OBJ importer ───────────────────────────────────────────────────────
+// ── GLTF / OBJ import ─────────────────────────────────────────────────────────
 function loadModelFile(file) {
-  const url  = URL.createObjectURL(file);
-  const ext  = file.name.split('.').pop().toLowerCase();
+  const url = URL.createObjectURL(file);
+  const ext = file.name.split('.').pop().toLowerCase();
   const done = (obj) => {
     obj.traverse(n => { if (n.isMesh) { n.castShadow = n.receiveShadow = true; } });
-    // Auto-scale: fit within 0.8m bounding sphere
     const box  = new THREE.Box3().setFromObject(obj);
     const size = box.getSize(new THREE.Vector3()).length();
-    if (size > 0) obj.scale.setScalar(0.8 / size);
-    // Zero-out Y so robot sits on floor
+    if (size > 0) obj.scale.setScalar(0.7 / size);
     box.setFromObject(obj);
     obj.position.y = -box.min.y;
-    leftWheelMesh = rightWheelMesh = lidarMesh = null;  // no wheel refs for imported model
+    leftWheelMesh = rightWheelMesh = sideBrushMesh = null;
     setRobotModel(obj);
     document.getElementById('model-name').textContent = file.name;
     URL.revokeObjectURL(url);
   };
-
   if (ext === 'glb' || ext === 'gltf') {
     new GLTFLoader().load(url, gltf => done(gltf.scene), undefined, e => alert('GLTF error: ' + e.message));
   } else if (ext === 'obj') {
@@ -521,26 +618,22 @@ function loadModelFile(file) {
   }
 }
 
-// ── Trajectory geometry builders ──────────────────────────────────────────────
+// ── Trajectory geometry ───────────────────────────────────────────────────────
 function buildTrajectoryGeometry() {
   if (!episodeData) return;
-  const n   = episodeData.n_timesteps;
-  const pos = [];
-  const col = [];
-
+  const n = episodeData.n_timesteps;
+  const pos = [], col = [];
   for (let i = 0; i < n; i++) {
     const [x, y] = episodeData.states[i];
-    pos.push(x, 0.015, y);
+    pos.push(x, 0.012, y);
     const [r, g, b] = speedColor(episodeData.v_linear[i]);
     col.push(r, g, b);
   }
-
   trajGeo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
   trajGeo.setAttribute('color',    new THREE.Float32BufferAttribute(col, 3));
 
-  // Planned path
   if (episodeData.planned_path && episodeData.planned_path.length) {
-    const pp = episodeData.planned_path.map(([x, y]) => new THREE.Vector3(x, 0.015, y));
+    const pp = episodeData.planned_path.map(([x, y]) => new THREE.Vector3(x, 0.012, y));
     plannedGeo.setFromPoints(pp);
     plannedLine.computeLineDistances();
   }
@@ -551,23 +644,22 @@ function buildWaypoints() {
   if (!episodeData) return;
   const mat = new THREE.MeshStandardMaterial({ color: 0xffcc00, emissive: 0x664400, emissiveIntensity: 0.4 });
   episodeData.waypoints.forEach(([x, y], i) => {
-    const puck = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.03, 16), mat);
-    puck.position.set(x, 0.015, y);
+    const puck = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.09, 0.025, 16), mat);
+    puck.position.set(x, 0.012, y);
     waypointGroup.add(puck);
-    // Numbered ring (goal = last waypoint is white)
     if (i === episodeData.waypoints.length - 1) {
       const goalRing = new THREE.Mesh(
-        new THREE.TorusGeometry(0.15, 0.02, 8, 24),
-        new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0x444444, emissiveIntensity: 0.5 })
+        new THREE.TorusGeometry(0.13, 0.018, 8, 24),
+        new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0x444444, emissiveIntensity: 0.4 })
       );
       goalRing.rotation.x = Math.PI / 2;
-      goalRing.position.set(x, 0.02, y);
+      goalRing.position.set(x, 0.014, y);
       waypointGroup.add(goalRing);
     }
   });
 }
 
-// ── Update robot pose ─────────────────────────────────────────────────────────
+// ── Update pose each frame ────────────────────────────────────────────────────
 function updateScene(step, isFailure) {
   if (!episodeData || !robotModel) return;
 
@@ -575,41 +667,40 @@ function updateScene(step, isFailure) {
   robotModel.position.set(x, 0, y);
   robotModel.rotation.y = -theta;
 
-  // Wheel animation (spin proportional to speed)
+  // Wheel spin (proportional to linear speed)
   const spd = episodeData.v_linear[step];
-  wheelRotation += spd * DT / 0.034;
-  if (leftWheelMesh)  leftWheelMesh.rotation.y  = wheelRotation;
-  if (rightWheelMesh) rightWheelMesh.rotation.y = wheelRotation;
-  if (lidarMesh)      lidarMesh.rotation.y      += 0.06;
+  wheelRotation += spd * DT / 0.036;
+  if (leftWheelMesh)  leftWheelMesh.rotation.z  = wheelRotation;
+  if (rightWheelMesh) rightWheelMesh.rotation.z = wheelRotation;
 
-  // Heading arrow
-  const fwd = new THREE.Vector3(Math.cos(theta), 0, Math.sin(theta)).normalize();
-  arrowHelper.position.set(x, 0.55, y);
-  arrowHelper.setDirection(fwd);
-  arrowHelper.setColor(isFailure ? 0xff4444 : 0x00ff88);
+  // Side brush spin
+  if (sideBrushMesh)  sideBrushMesh.rotation.y -= 0.08;
+
+  // LED ring color: green = ok, red = failure
+  if (statusLedMat) {
+    if (isFailure) {
+      statusLedMat.color.setHex(0xff2222);
+      statusLedMat.emissive.setHex(0x660000);
+    } else {
+      statusLedMat.color.setHex(0x00ee55);
+      statusLedMat.emissive.setHex(0x009933);
+    }
+  }
 
   // Active trail
   const start = Math.max(0, step - TRAIL_STEPS);
   const tPos = [], tCol = [];
   for (let i = start; i <= step; i++) {
     const [tx, ty] = episodeData.states[i];
-    tPos.push(tx, 0.02, ty);
+    tPos.push(tx, 0.018, ty);
     const fade = (i - start) / TRAIL_STEPS;
-    const [r, g, b] = speedColor(episodeData.v_linear[i]);
-    tCol.push(r * fade, g * fade, b * fade);
+    const [r, gv, b] = speedColor(episodeData.v_linear[i]);
+    tCol.push(r * fade, gv * fade, b * fade);
   }
   trailGeo.setAttribute('position', new THREE.Float32BufferAttribute(tPos, 3));
   trailGeo.setAttribute('color',    new THREE.Float32BufferAttribute(tCol, 3));
   trailGeo.attributes.position.needsUpdate = true;
   trailGeo.attributes.color.needsUpdate = true;
-
-  // Failure styling
-  robotModel.traverse(n => {
-    if (n.isMesh && n.material) {
-      n.material.emissiveIntensity = isFailure ? 0.25 : (n.material.emissiveIntensity > 0 ? n.material.emissiveIntensity : 0);
-      if (isFailure) n.material.emissive?.setHex(0x440000);
-    }
-  });
 }
 
 // ── Resize ────────────────────────────────────────────────────────────────────
@@ -623,7 +714,7 @@ function resize() {
 new ResizeObserver(resize).observe(viewer);
 resize();
 
-// ── Animation loop ─────────────────────────────────────────────────────────────
+// ── Animation loop ────────────────────────────────────────────────────────────
 function setPlaying(v) {
   isPlaying = v;
   document.getElementById('btn-play').innerHTML = v ? '&#9646;&#9646;' : '&#9654;';
@@ -661,7 +752,7 @@ const stepPlugin = {
   afterDraw(chart) {
     if (!episodeData) return;
     const { ctx, scales: { x, y } } = chart;
-    const draw = (val, color, dash) => {
+    const drawLine = (val, color, dash) => {
       const px = x.getPixelForValue(val);
       ctx.save();
       ctx.strokeStyle = color; ctx.lineWidth = 1.5;
@@ -669,8 +760,8 @@ const stepPlugin = {
       ctx.beginPath(); ctx.moveTo(px, y.top); ctx.lineTo(px, y.bottom); ctx.stroke();
       ctx.restore();
     };
-    if (episodeData.failure_step >= 0) draw(episodeData.failure_step, 'rgba(224,64,64,.8)', true);
-    draw(currentStep, 'rgba(200,220,240,.9)', false);
+    if (episodeData.failure_step >= 0) drawLine(episodeData.failure_step, 'rgba(224,64,64,.8)', true);
+    drawLine(currentStep, 'rgba(200,220,240,.9)', false);
   }
 };
 Chart.register(stepPlugin);
@@ -701,7 +792,7 @@ function loadChart() {
   const labels = Array.from({ length: n }, (_, i) => i);
   velChart.data.labels = labels;
   velChart.data.datasets = [
-    { label: 'Linear (m/s)', data: episodeData.v_linear,  borderColor: '#3a8fd6', backgroundColor: 'transparent', borderWidth: 1.5, pointRadius: 0, tension: 0.3 },
+    { label: 'Linear (m/s)',  data: episodeData.v_linear,  borderColor: '#3a8fd6', backgroundColor: 'transparent', borderWidth: 1.5, pointRadius: 0, tension: 0.3 },
     { label: 'Angular (r/s)', data: episodeData.v_angular, borderColor: '#9b72d6', backgroundColor: 'transparent', borderWidth: 1.5, pointRadius: 0, tension: 0.3 },
   ];
   if (episodeData.failure_step >= 0) {
@@ -717,8 +808,15 @@ function loadChart() {
 
 // ── UI sync ───────────────────────────────────────────────────────────────────
 const FC_COLORS = {
-  nominal:'#27c483', e_stop:'#ff7070', oscillation:'#b080ff',
-  path_deviation:'#70b0ff', overspeed:'#e8b84b', timeout:'#8899aa', unknown:'#6b7f96'
+  nominal:      '#27c483',
+  stuck_corner: '#b080ff',
+  missed_zone:  '#70b0ff',
+  cliff_error:  '#ff7070',
+  low_battery:  '#8899aa',
+  wheel_slip:   '#e8b84b',
+  tangled:      '#ff9040',
+  return_fail:  '#aa60ff',
+  unknown:      '#6b7f96',
 };
 
 function syncUI() {
@@ -736,19 +834,39 @@ function syncUI() {
   const okEl   = document.getElementById('hud-ok');
   failEl.style.display = isFailure ? 'block' : 'none';
   okEl.style.display   = (!isFailure && episodeData.failure_class === 'nominal') ? 'block' : 'none';
-  if (isFailure) failEl.textContent = `\u25cf ${episodeData.failure_class.toUpperCase().replace(/_/g,' ')}`;
+  if (isFailure) failEl.textContent = `\u25cf ${episodeData.failure_class.replace(/_/g,' ').toUpperCase()}`;
 
   document.getElementById('fail-ring').className = isFailure ? 'on' : '';
   velChart.update('none');
 }
 
+// ── Flag panel ────────────────────────────────────────────────────────────────
+function setFlagPanelVisible(visible) {
+  document.getElementById('flag-panel').classList.toggle('visible', visible);
+}
+
+document.querySelectorAll('.flag-chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    document.querySelectorAll('.flag-chip').forEach(c => c.classList.remove('active'));
+    chip.classList.add('active');
+    const reason = chip.dataset.reason;
+    const notes  = document.getElementById('rev-notes');
+    // Replace or prepend the [Reason] tag
+    notes.value = notes.value.replace(/^\[.*?\]\s*/, '');
+    notes.value = `[${reason}] ${notes.value}`.trimEnd();
+    // Auto-select flag decision
+    setDecision('flag');
+  });
+});
+
 // ── Review logic ──────────────────────────────────────────────────────────────
 function setDecision(d) {
   pendingDecision = d;
-  ['approve','reject','flag'].forEach(k => {
+  ['approve', 'reject', 'flag'].forEach(k => {
     document.getElementById('btn-' + k).classList.toggle('active', d === k);
   });
   document.getElementById('btn-submit').disabled = !d;
+  setFlagPanelVisible(d === 'flag');
 }
 
 async function submitReview() {
@@ -759,11 +877,10 @@ async function submitReview() {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ decision: pendingDecision, notes }),
   });
-  // Update sidebar dot + summary pills
   updateEpItemStatus(episodeData.id, pendingDecision);
-  document.getElementById('prev-label').textContent = `Saved: ${pendingDecision}`;
-  document.getElementById('prev-label').style.color =
-    pendingDecision === 'approve' ? 'var(--green)' : pendingDecision === 'reject' ? 'var(--red)' : 'var(--yellow)';
+  const pl = document.getElementById('prev-label');
+  pl.textContent = `Saved: ${pendingDecision}`;
+  pl.style.color = pendingDecision === 'approve' ? 'var(--green)' : pendingDecision === 'reject' ? 'var(--red)' : 'var(--yellow)';
   refreshSummaryPills();
 }
 
@@ -785,42 +902,44 @@ async function refreshSummaryPills() {
 async function loadEpisode(id) {
   const res = await fetch(`/api/episodes/${id}`);
   if (!res.ok) return;
-  episodeData  = await res.json();
-  currentStep  = 0;
-  accTime      = 0;
-  pendingDecision = null;
+  episodeData = await res.json();
+  currentStep = 0;
+  accTime     = 0;
   setPlaying(false);
   setDecision(null);
-  document.getElementById('rev-notes').value = '';
-  document.getElementById('btn-submit').disabled = true;
+  setFlagPanelVisible(false);
+  document.querySelectorAll('.flag-chip').forEach(c => c.classList.remove('active'));
 
   document.getElementById('scrubber').max = episodeData.n_timesteps - 1;
-
-  // HUD
   document.getElementById('hud-ep').textContent = episodeData.id;
-  const cv = document.getElementById('hud-class-val');
-  cv.textContent  = episodeData.failure_class;
-  cv.style.color  = FC_COLORS[episodeData.failure_class] || '#6b7f96';
 
-  // Previous review
+  const cv = document.getElementById('hud-class-val');
+  cv.textContent = episodeData.failure_class.replace(/_/g, ' ');
+  cv.style.color = FC_COLORS[episodeData.failure_class] || '#6b7f96';
+
+  // Restore previous review
   const prev = episodeData.prev_review;
+  const pl   = document.getElementById('prev-label');
   if (prev) {
-    const pl = document.getElementById('prev-label');
-    pl.textContent  = `Previously: ${prev.decision}`;
-    pl.style.color  = prev.decision === 'approve' ? 'var(--green)' : prev.decision === 'reject' ? 'var(--red)' : 'var(--yellow)';
+    pl.textContent = `Prev: ${prev.decision}`;
+    pl.style.color = prev.decision === 'approve' ? 'var(--green)' : prev.decision === 'reject' ? 'var(--red)' : 'var(--yellow)';
     document.getElementById('rev-notes').value = prev.notes || '';
+    setDecision(prev.decision);
+    // For flagged episodes, show the flag chip panel
+    if (prev.decision === 'flag') setFlagPanelVisible(true);
   } else {
-    document.getElementById('prev-label').textContent = '';
+    pl.textContent = '';
+    document.getElementById('rev-notes').value = '';
   }
 
-  // Camera: frame around the episode's bounding box
-  const xs = episodeData.states.map(s => s[0]);
-  const ys = episodeData.states.map(s => s[1]);
-  const cx = (Math.min(...xs) + Math.max(...xs)) / 2;
-  const cy = (Math.min(...ys) + Math.max(...ys)) / 2;
-  const span = Math.max(Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys), 3);
+  // Camera: frame episode bounding box
+  const xs   = episodeData.states.map(s => s[0]);
+  const ys   = episodeData.states.map(s => s[1]);
+  const cx   = (Math.min(...xs) + Math.max(...xs)) / 2;
+  const cy   = (Math.min(...ys) + Math.max(...ys)) / 2;
+  const span = Math.max(Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys), 2.5);
   controls.target.set(cx, 0, cy);
-  camera.position.set(cx + span * 0.7, span * 1.2, cy + span * 1.0);
+  camera.position.set(cx + span * 0.7, span * 1.2, cy + span * 0.9);
   controls.update();
 
   buildTrajectoryGeometry();
@@ -838,18 +957,19 @@ async function loadEpisodeList() {
 
   for (const ep of eps) {
     const el = document.createElement('div');
-    el.className   = 'ep';
-    el.dataset.id  = ep.id;
-    const bc       = `badge b-${ep.failure_class}`;
+    el.className  = 'ep';
+    el.dataset.id = ep.id;
+    const rdotCls = `rdot rdot-${ep.review === 'pending' ? 'pending' : ep.review}`;
+    const bc      = `badge b-${ep.failure_class}`;
     const failInfo = ep.failure_step >= 0 ? ` · fail@${ep.failure_step}` : '';
-    const rdotCls  = `rdot rdot-${ep.review === 'pending' ? 'pending' : ep.review}`;
     el.innerHTML = `
       <div class="ep-top">
         <div class="${rdotCls}"></div>
         <span class="ep-id">${ep.id}</span>
-        <span class="badge ${bc}">${ep.failure_class.replace(/_/g,' ')}</span>
+        <span class="${bc}">${ep.failure_class.replace(/_/g,' ')}</span>
       </div>
-      <div class="ep-sub">${ep.n_timesteps} steps${failInfo}</div>`;
+      <div class="ep-sub">${ep.n_timesteps} steps${failInfo}</div>
+      <div class="ep-desc">${ep.description}</div>`;
     el.addEventListener('click', async () => {
       document.querySelectorAll('.ep').forEach(e => e.classList.remove('active'));
       el.classList.add('active');
@@ -866,7 +986,7 @@ async function loadEpisodeList() {
   refreshSummaryPills();
 }
 
-// ── Sidebar toggle ────────────────────────────────────────────────────────────
+// ── Sidebar ───────────────────────────────────────────────────────────────────
 function toggleSidebar(forceClose) {
   const s  = document.getElementById('sidebar');
   const sc = document.getElementById('scrim');
@@ -892,7 +1012,6 @@ document.getElementById('scrubber').addEventListener('input', e => {
   currentStep = +e.target.value; setPlaying(false); syncUI();
 });
 document.getElementById('speed-sel').addEventListener('change', e => { playSpeed = +e.target.value; });
-
 document.getElementById('btn-approve').addEventListener('click', () => setDecision('approve'));
 document.getElementById('btn-reject').addEventListener('click',  () => setDecision('reject'));
 document.getElementById('btn-flag').addEventListener('click',    () => setDecision('flag'));
@@ -903,21 +1022,18 @@ document.getElementById('import-btn').addEventListener('click', () => document.g
 document.getElementById('file-input').addEventListener('change', e => {
   if (e.target.files[0]) loadModelFile(e.target.files[0]);
 });
-
-// Drag-and-drop onto 3D viewer
 viewer.addEventListener('dragover', e => { e.preventDefault(); document.getElementById('drop-hint').classList.add('on'); });
 viewer.addEventListener('dragleave', () => document.getElementById('drop-hint').classList.remove('on'));
 viewer.addEventListener('drop', e => {
   e.preventDefault();
   document.getElementById('drop-hint').classList.remove('on');
-  const f = e.dataTransfer.files[0];
-  if (f) loadModelFile(f);
+  if (e.dataTransfer.files[0]) loadModelFile(e.dataTransfer.files[0]);
 });
 
 // ── Keyboard ──────────────────────────────────────────────────────────────────
 window.addEventListener('keydown', e => {
   if (!episodeData || e.target.tagName === 'TEXTAREA') return;
-  if (e.code === 'Space') { e.preventDefault(); document.getElementById('btn-play').click(); }
+  if (e.code === 'Space')      { e.preventDefault(); document.getElementById('btn-play').click(); }
   else if (e.code === 'ArrowLeft')  { currentStep = Math.max(0, currentStep - 1); setPlaying(false); syncUI(); }
   else if (e.code === 'ArrowRight') { currentStep = Math.min(episodeData.n_timesteps - 1, currentStep + 1); setPlaying(false); syncUI(); }
   else if (e.code === 'Home') { currentStep = 0; setPlaying(false); syncUI(); }
