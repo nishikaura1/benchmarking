@@ -257,6 +257,57 @@ header{
 .sensor-row{display:flex;justify-content:space-between;font-size:10px}
 .sensor-k{color:var(--muted)}.sensor-v{font-family:monospace}
 
+/* Failure analysis card */
+#failure-card{
+  display:none;flex-direction:column;gap:7px;
+  background:#160808;border:1px solid var(--red)44;border-radius:8px;
+  padding:10px 12px;animation:fadein .3s ease;
+}
+#failure-card.show{display:flex}
+.fc-header{display:flex;align-items:center;gap:7px}
+.fc-icon{font-size:14px}
+.fc-step{font-size:10px;font-weight:700;color:var(--red)}
+.fc-type{font-size:12px;font-weight:800;color:var(--red);text-transform:uppercase;letter-spacing:.4px}
+.fc-detail{font-size:10px;color:#c08080;line-height:1.55}
+.fc-metrics{display:flex;flex-direction:column;gap:3px;margin-top:2px;
+  padding-top:7px;border-top:1px solid var(--red)20}
+.fc-metric{display:flex;justify-content:space-between;font-size:10px}
+.fc-mk{color:#8a5050}.fc-mv{font-family:monospace;color:#d08080}
+
+/* Live analysis log */
+#live-log-block{
+  background:#060d16;border:1px solid var(--border);border-radius:8px;
+  padding:9px 12px;display:flex;flex-direction:column;gap:4px;
+}
+#live-log{max-height:140px;overflow-y:auto;display:flex;flex-direction:column;gap:1px}
+#live-log::-webkit-scrollbar{width:3px}
+#live-log::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+.ll-ttl{font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:2px}
+.ll-entry{font-size:10px;font-family:monospace;line-height:1.5;
+  padding:2px 0;border-bottom:1px solid #091828}
+.ll-entry:last-child{border-bottom:none}
+.ll-nominal{color:var(--muted)}.ll-warn{color:var(--yellow)}.ll-fail{color:#d07070}
+.ll-ok{color:var(--green)}
+
+/* Submit toast */
+#submit-toast{
+  position:fixed;bottom:80px;right:16px;z-index:999;
+  background:#0a2014;border:1px solid var(--green)60;border-radius:8px;
+  padding:10px 16px;font-size:11px;font-weight:700;color:var(--green);
+  display:flex;align-items:center;gap:8px;
+  opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;transform:translateY(6px);
+}
+#submit-toast.show{opacity:1;transform:translateY(0)}
+#submit-toast.error{background:#200808;border-color:var(--red)60;color:var(--red)}
+
+/* Flash animation for counts */
+@keyframes flashgreen{0%,100%{background:var(--panel2)}50%{background:var(--green)22}}
+@keyframes flashred{0%,100%{background:var(--panel2)}50%{background:var(--red)22}}
+@keyframes flashyellow{0%,100%{background:var(--panel2)}50%{background:var(--yellow)22}}
+.flash-green{animation:flashgreen .6s ease}
+.flash-red{animation:flashred .6s ease}
+.flash-yellow{animation:flashyellow .6s ease}
+
 /* Center */
 #viz-center{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
 .eng-hdr{height:38px;flex-shrink:0;display:flex;align-items:center;gap:10px;
@@ -522,10 +573,31 @@ header{
         <div class="flow-arrow"><div class="flow-line"></div><div class="flow-head">▼</div><div class="flow-lbl">Live Run</div></div>
         <div class="sensor-block">
           <div class="sensor-ttl">Engine Status</div>
-          <div class="status-row"><div class="status-dot running" id="vl-dot"></div><span style="font-size:11px;font-weight:600" id="vl-status-txt" style="color:var(--green)">RUNNING</span></div>
+          <div class="status-row"><div class="status-dot running" id="vl-dot"></div><span style="font-size:11px;font-weight:600" id="vl-status-txt">RUNNING</span></div>
           <div class="sensor-row" style="margin-top:4px"><span class="sensor-k">Step</span><span class="sensor-v" id="vl-live-step" style="color:var(--teal)">—</span></div>
           <div class="sensor-row"><span class="sensor-k">Position</span><span class="sensor-v" id="vl-live-pos">—</span></div>
-          <div class="sensor-row"><span class="sensor-k">Speed</span><span class="sensor-v" id="vl-live-vel" style="color:var(--green)">—</span></div>
+          <div class="sensor-row"><span class="sensor-k">Speed</span><span class="sensor-v" id="vl-live-vel">—</span></div>
+        </div>
+
+        <!-- Failure analysis card — shown when failure step is reached -->
+        <div id="failure-card">
+          <div class="fc-header">
+            <span class="fc-icon">⚠</span>
+            <span class="fc-step" id="fc-step">Failure at step —</span>
+          </div>
+          <div class="fc-type" id="fc-type">—</div>
+          <div class="fc-detail" id="fc-detail">—</div>
+          <div class="fc-metrics">
+            <div class="fc-metric"><span class="fc-mk">Peak ω</span><span class="fc-mv" id="fc-omega">—</span></div>
+            <div class="fc-metric"><span class="fc-mk">Run affected</span><span class="fc-mv" id="fc-pct">—</span></div>
+            <div class="fc-metric"><span class="fc-mk">Indicator</span><span class="fc-mv" id="fc-indicator">—</span></div>
+          </div>
+        </div>
+
+        <!-- Live analysis log -->
+        <div id="live-log-block">
+          <div class="ll-ttl">Live Analysis</div>
+          <div id="live-log"><div class="ll-entry ll-nominal">Awaiting playback…</div></div>
         </div>
       </div>
     </div>
@@ -598,7 +670,9 @@ header{
           <span id="prev-label"></span>
           <button id="btn-submit" disabled>Submit</button>
         </div>
-      </div>
+      </div><!-- /review-actions -->
+      <!-- Toast notification -->
+      <div id="submit-toast"></div>
       <div id="review-summary-bar">
         <div class="rsb-item"><div class="rsb-num" id="s-a" style="color:var(--green)">—</div><div class="rsb-lbl">approved</div></div>
         <div class="rsb-item"><div class="rsb-num" id="s-r" style="color:var(--red)">—</div><div class="rsb-lbl">rejected</div></div>
@@ -1244,27 +1318,134 @@ const FC_COLORS = {
 const DEC_LABELS = { approve:'✓ APPROVE', reject:'✗ REJECT', flag:'⚑ FLAGGED', pending:'PENDING' };
 const DEC_CLS    = { approve:'d-approve',  reject:'d-reject',  flag:'d-flag',    pending:'d-pending' };
 
+const FAILURE_INFO = {
+  stuck_corner: {
+    label: 'Stuck in Corner',
+    detail: 'Robot became trapped against a wall — repeated collision-avoidance maneuvers caused oscillation without forward progress.',
+    indicator: 'Angular velocity > 1.2 rad/s sustained',
+    omega: ep => { const v = ep.v_angular; return Math.max(...v.map(Math.abs)).toFixed(2) + ' rad/s'; },
+    pct:   ep => { const fs = ep.failure_step, n = ep.n_timesteps; return fs >= 0 ? Math.round((n-fs)/n*100)+'% of run' : '—'; },
+  },
+  missed_zone: {
+    label: 'Missed Coverage Zone',
+    detail: 'Coverage path planner diverged — robot skipped a floor segment, leaving an uncleaned area > 0.25 m².',
+    indicator: 'Path deviation > 0.4 m from planned waypoint',
+    omega: ep => { const v = ep.v_angular; return Math.max(...v.map(Math.abs)).toFixed(2) + ' rad/s'; },
+    pct:   ep => { const fs = ep.failure_step, n = ep.n_timesteps; return fs >= 0 ? Math.round((n-fs)/n*100)+'% of run' : '—'; },
+  },
+  cliff_error: {
+    label: 'Cliff Sensor E-Stop',
+    detail: 'Cliff sensor triggered an emergency stop — robot detected a drop edge (stair or ledge) and halted immediately.',
+    indicator: 'Cliff sensor bit set → v_linear forced to 0',
+    omega: ep => '0.00 rad/s',
+    pct:   ep => { const fs = ep.failure_step, n = ep.n_timesteps; return fs >= 0 ? Math.round((n-fs)/n*100)+'% of run' : '—'; },
+  },
+  low_battery: {
+    label: 'Low Battery Abort',
+    detail: 'Battery fell below 15% mid-run — robot aborted the cleaning mission to return to the charging dock.',
+    indicator: 'Runtime exceeded estimated charge life',
+    omega: ep => { const v = ep.v_angular; return Math.max(...v.map(Math.abs)).toFixed(2) + ' rad/s'; },
+    pct:   ep => { const fs = ep.failure_step, n = ep.n_timesteps; return fs >= 0 ? Math.round((n-fs)/n*100)+'% of run' : '—'; },
+  },
+  wheel_slip: {
+    label: 'Wheel Slip Detected',
+    detail: 'Encoder / IMU velocity mismatch — one or both drive wheels lost traction on a smooth or damp surface.',
+    indicator: 'Encoder vs IMU velocity delta > 0.15 m/s',
+    omega: ep => { const v = ep.v_angular; return Math.max(...v.map(Math.abs)).toFixed(2) + ' rad/s'; },
+    pct:   ep => { const fs = ep.failure_step, n = ep.n_timesteps; return fs >= 0 ? Math.round((n-fs)/n*100)+'% of run' : '—'; },
+  },
+  tangled: {
+    label: 'Brush Tangle / Jam',
+    detail: 'Side brush or main roller became entangled with carpet fibers or loose debris, stalling the drive motor.',
+    indicator: 'Motor current spike, v_linear drops to 0',
+    omega: ep => { const v = ep.v_angular; return Math.max(...v.map(Math.abs)).toFixed(2) + ' rad/s'; },
+    pct:   ep => { const fs = ep.failure_step, n = ep.n_timesteps; return fs >= 0 ? Math.round((n-fs)/n*100)+'% of run' : '—'; },
+  },
+  return_fail: {
+    label: 'Return-to-Dock Failure',
+    detail: 'Robot could not locate the charging dock — IR/RF beacon signal lost, possibly due to obstruction or dock displacement.',
+    indicator: 'Dock signal lost after 3 retries',
+    omega: ep => { const v = ep.v_angular; return Math.max(...v.map(Math.abs)).toFixed(2) + ' rad/s'; },
+    pct:   ep => { const fs = ep.failure_step, n = ep.n_timesteps; return fs >= 0 ? Math.round((n-fs)/n*100)+'% of run' : '—'; },
+  },
+  nominal: {
+    label: 'Nominal Run',
+    detail: 'Episode completed successfully. Full coverage achieved with no fault events detected.',
+    indicator: 'All sensor metrics within operational bounds',
+    omega: ep => { const v = ep.v_angular; return Math.max(...v.map(Math.abs)).toFixed(2) + ' rad/s'; },
+    pct:   _  => '0% affected',
+  },
+};
+
+// Live-log state
+let _vizLogStep = -1;
+function resetLiveLog() {
+  _vizLogStep = -1;
+  const el = document.getElementById('live-log');
+  if (el) el.innerHTML = '<div class="ll-entry ll-nominal">Awaiting playback…</div>';
+}
+function appendLiveLog(cls, msg) {
+  const el = document.getElementById('live-log');
+  if (!el) return;
+  const div = document.createElement('div');
+  div.className = `ll-entry ${cls}`;
+  div.textContent = msg;
+  el.appendChild(div);
+  // Keep at most 40 lines
+  while (el.children.length > 40) el.removeChild(el.firstChild);
+  el.scrollTop = el.scrollHeight;
+}
+function updateLiveLog(ep, step) {
+  if (!ep) return;
+  const LOG_EVERY = Math.max(1, Math.floor(ep.n_timesteps / 40));
+  if (step < _vizLogStep) { resetLiveLog(); } // rewound
+  if (step <= _vizLogStep) return;
+  const fs = ep.failure_step;
+  const [x, y] = ep.states[step];
+  const vl = ep.v_linear[step].toFixed(2);
+  const va = ep.v_angular[step].toFixed(2);
+  // Only log every LOG_EVERY steps
+  if (step % LOG_EVERY === 0 || (fs >= 0 && step === fs)) {
+    if (fs >= 0 && step >= fs) {
+      const info = FAILURE_INFO[ep.failure_class] || FAILURE_INFO.nominal;
+      if (step === fs) {
+        appendLiveLog('ll-fail',  `[FAULT] ${ep.failure_class.replace(/_/g,' ').toUpperCase()} detected at step ${step}`);
+        appendLiveLog('ll-fail',  `[FAULT] ${info.indicator}`);
+        appendLiveLog('ll-warn',  `[WARN]  v_linear=${vl} m/s  v_angular=${va} rad/s`);
+      } else if (step % LOG_EVERY === 0) {
+        appendLiveLog('ll-warn', `[WARN]  pos=(${x.toFixed(2)},${y.toFixed(2)})  v=${vl}  ω=${va}`);
+      }
+    } else if (fs >= 0 && step >= fs - Math.floor(ep.n_timesteps * 0.07) && step < fs) {
+      appendLiveLog('ll-warn', `[WARN]  anomaly precursor — pos=(${x.toFixed(2)},${y.toFixed(2)})  ω=${va} rad/s`);
+    } else {
+      appendLiveLog('ll-nominal', `[INFO]  step=${step}  pos=(${x.toFixed(2)},${y.toFixed(2)})  v=${vl}  ω=${va}`);
+    }
+  }
+  _vizLogStep = step;
+}
+
 function syncVizUI() {
   if (!S.episodeData) return;
-  const isF = S.episodeData.failure_step >= 0 && currentStep >= S.episodeData.failure_step;
-  const [x, y, theta] = S.episodeData.states[currentStep];
-  const vl = S.episodeData.v_linear[currentStep];
+  const ep  = S.episodeData;
+  const isF = ep.failure_step >= 0 && currentStep >= ep.failure_step;
+  const [x, y, theta] = ep.states[currentStep];
+  const vl = ep.v_linear[currentStep];
 
   document.getElementById('scrubber').value    = currentStep;
-  document.getElementById('step-disp').textContent = `${currentStep} / ${S.episodeData.n_timesteps - 1}`;
+  document.getElementById('step-disp').textContent = `${currentStep} / ${ep.n_timesteps - 1}`;
   document.getElementById('hud-step').textContent  = currentStep;
   document.getElementById('hud-pos').textContent   = `(${x.toFixed(2)}, ${y.toFixed(2)})`;
   document.getElementById('hud-vel').textContent   = `${vl.toFixed(2)} m/s`;
   const hfail = document.getElementById('hud-fail'), hok = document.getElementById('hud-ok');
   hfail.style.display = isF ? 'block' : 'none';
-  hok.style.display   = !isF && S.episodeData.failure_class === 'nominal' ? 'block' : 'none';
-  if (isF) hfail.textContent = `\u25cf ${S.episodeData.failure_class.replace(/_/g,' ').toUpperCase()}`;
+  hok.style.display   = !isF && ep.failure_class === 'nominal' ? 'block' : 'none';
+  if (isF) hfail.textContent = `\u25cf ${ep.failure_class.replace(/_/g,' ').toUpperCase()}`;
   document.getElementById('fail-ring').className = isF ? 'on' : '';
   document.getElementById('viz-status').textContent = isF ? '⚠ FAILURE' : '● RUNNING';
   document.getElementById('viz-status').style.color = isF ? 'var(--red)' : 'var(--green)';
 
   // Left panel live
-  document.getElementById('vl-live-step').textContent = `${currentStep} / ${S.episodeData.n_timesteps - 1}`;
+  document.getElementById('vl-live-step').textContent = `${currentStep} / ${ep.n_timesteps - 1}`;
   document.getElementById('vl-live-pos').textContent  = `(${x.toFixed(2)}, ${y.toFixed(2)})`;
   document.getElementById('vl-live-vel').textContent  = `${vl.toFixed(2)} m/s`;
   document.getElementById('vl-live-vel').style.color  = isF ? 'var(--red)' : 'var(--green)';
@@ -1273,6 +1454,40 @@ function syncVizUI() {
   dot.className = `status-dot ${isF ? 'failure' : 'running'}`;
   stxt.textContent = isF ? 'FAILURE DETECTED' : 'RUNNING';
   stxt.style.color = isF ? 'var(--red)' : 'var(--green)';
+
+  // Failure analysis card
+  const fc = document.getElementById('failure-card');
+  if (ep.failure_class !== 'nominal' && ep.failure_step >= 0) {
+    const info = FAILURE_INFO[ep.failure_class] || { label: ep.failure_class, detail: '—', indicator: '—', omega: ()=>'—', pct: ()=>'—' };
+    if (isF) {
+      fc.classList.add('show');
+      document.getElementById('fc-step').textContent    = `Failure at step ${ep.failure_step}`;
+      document.getElementById('fc-type').textContent    = info.label;
+      document.getElementById('fc-detail').textContent  = info.detail;
+      document.getElementById('fc-omega').textContent   = info.omega(ep);
+      document.getElementById('fc-pct').textContent     = info.pct(ep);
+      document.getElementById('fc-indicator').textContent = info.indicator;
+    } else {
+      // Pre-failure: show card in warning state if approaching failure
+      const ahead = ep.failure_step - currentStep;
+      if (ahead <= Math.floor(ep.n_timesteps * 0.12) && ahead > 0) {
+        fc.classList.add('show');
+        document.getElementById('fc-step').textContent    = `Failure predicted in ~${ahead} steps`;
+        document.getElementById('fc-type').textContent    = info.label;
+        document.getElementById('fc-detail').textContent  = info.detail;
+        document.getElementById('fc-omega').textContent   = info.omega(ep);
+        document.getElementById('fc-pct').textContent     = info.pct(ep);
+        document.getElementById('fc-indicator').textContent = info.indicator;
+      } else {
+        fc.classList.remove('show');
+      }
+    }
+  } else {
+    fc.classList.remove('show');
+  }
+
+  // Live analysis log
+  updateLiveLog(ep, currentStep);
 
   velChart.update('none');
 }
@@ -1285,6 +1500,8 @@ async function onEnterViz() {
   setPlaying(false); setDecision(null); setFlagPanelVisible(false);
   document.querySelectorAll('.flag-chip').forEach(c => c.classList.remove('active'));
   document.getElementById('scrubber').max = ep.n_timesteps - 1;
+  document.getElementById('failure-card').classList.remove('show');
+  resetLiveLog();
   resize();
 
   // Center header
@@ -1321,7 +1538,11 @@ async function onEnterViz() {
   } else {
     decBadge.textContent = 'PENDING'; decBadge.className = 'dec-badge d-pending';
     decNotes.textContent = ep.description || '—';
-    document.getElementById('rev-notes').value = '';
+    // Auto-fill notes with failure explanation for non-nominal episodes
+    const autoNote = ep.failure_class !== 'nominal' && FAILURE_INFO[ep.failure_class]
+      ? `[${ep.failure_class}] ${FAILURE_INFO[ep.failure_class].detail}`
+      : '';
+    document.getElementById('rev-notes').value = autoNote;
     document.getElementById('prev-label').textContent = '';
   }
 
@@ -1395,22 +1616,71 @@ function setDecision(d) {
   setFlagPanelVisible(d === 'flag');
 }
 
+let _toastTimer = null;
+function showToast(msg, isError) {
+  const t = document.getElementById('submit-toast');
+  if (!t) return;
+  t.textContent = (isError ? '✗ ' : '✓ ') + msg;
+  t.className = 'show' + (isError ? ' error' : '');
+  if (_toastTimer) clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => { t.className = ''; }, 2600);
+}
+
+function flashCount(id, cls) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.classList.remove('flash-green','flash-red','flash-yellow');
+  // Force reflow so re-adding the class re-triggers animation
+  void el.offsetWidth;
+  el.classList.add(cls);
+  setTimeout(() => el.classList.remove(cls), 700);
+}
+
 async function submitReview() {
   if (!S.episodeData || !pendingDecision) return;
   const notes = document.getElementById('rev-notes').value;
-  await fetch(`/api/review/${S.episodeData.id}`, {
-    method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({ decision: pendingDecision, notes }),
-  });
+  let res;
+  try {
+    res = await fetch(`/api/review/${S.episodeData.id}`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ decision: pendingDecision, notes }),
+    });
+  } catch(err) {
+    showToast('Network error — review not saved', true);
+    return;
+  }
+  if (!res.ok) {
+    const msg = await res.text().catch(()=>'server error');
+    showToast(`Error ${res.status}: ${msg}`, true);
+    return;
+  }
+
   const d = pendingDecision;
+  // Update queue dot
   const rqDot = document.querySelector(`.rq-item[data-id="${S.episodeData.id}"] .ep-rdot`);
   if (rqDot) rqDot.className = `ep-rdot ep-rdot-${d}`;
+  // Update decision badge
   document.getElementById('dec-badge').textContent = DEC_LABELS[d];
   document.getElementById('dec-badge').className   = `dec-badge ${DEC_CLS[d]}`;
+  // Update saved label
   const pl = document.getElementById('prev-label');
   pl.textContent = `Saved: ${d}`;
   pl.style.color = d==='approve'?'var(--green)':d==='reject'?'var(--red)':'var(--yellow)';
-  refreshStats();
+  // Mark episode in local list so queue dot persists on re-render
+  if (S.episodeList) {
+    const idx = S.episodeList.findIndex(e => e.id === S.episodeData.id);
+    if (idx >= 0) S.episodeList[idx].review = d;
+  }
+  // Toast + flash the relevant summary count
+  const toastMsg = d === 'approve' ? 'Episode approved' : d === 'reject' ? 'Episode rejected' : 'Episode flagged';
+  showToast(toastMsg, false);
+  const countMap = { approve: ['s-a','flash-green'], reject: ['s-r','flash-red'], flag: ['s-f','flash-yellow'] };
+  const [countId, flashCls] = countMap[d] || [];
+  if (countId) flashCount(countId, flashCls);
+  // Refresh all stats
+  await refreshStats();
+  // Re-flash after refresh (so the new number pulses)
+  if (countId) flashCount(countId, flashCls);
 }
 
 async function refreshStats() {
