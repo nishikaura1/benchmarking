@@ -394,7 +394,10 @@ async def load_file(path: str):
 
 @app.get("/")
 def index():
-    return FileResponse(STATIC_DIR / "index.html")
+    return FileResponse(
+        STATIC_DIR / "index.html",
+        headers={"Cache-Control": "no-cache, no-store, must-revalidate", "Pragma": "no-cache"},
+    )
 
 
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
