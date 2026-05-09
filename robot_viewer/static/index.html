@@ -205,6 +205,92 @@ header h1 { font-size:14px; font-weight:600; white-space:nowrap; }
 #btn-submit:hover { background:#4a9fe6; }
 #btn-submit:disabled { background:#2a3a50; color:var(--muted); cursor:default; }
 
+/* ── Pipeline Panel ── */
+#pipeline-btn {
+  background:#1a2030; border:1px solid var(--border); border-radius:6px;
+  color:var(--teal); cursor:pointer; font-size:12px; padding:5px 11px; white-space:nowrap;
+}
+#pipeline-btn:hover, #pipeline-btn.active { background:#1a3040; border-color:var(--teal); }
+
+#pipeline-panel {
+  position:absolute; top:0; right:0; bottom:0; z-index:30;
+  width:320px; background:rgba(10,16,26,0.98);
+  border-left:1px solid var(--border);
+  display:flex; flex-direction:column; overflow:hidden;
+  transform:translateX(100%);
+  transition:transform .22s ease, box-shadow .22s ease;
+  backdrop-filter:blur(10px);
+}
+#pipeline-panel.open { transform:translateX(0); box-shadow:-6px 0 30px rgba(0,0,0,.65); }
+#pp-hdr {
+  padding:10px 12px 8px; font-size:10px; font-weight:700; color:var(--muted);
+  text-transform:uppercase; letter-spacing:1px; border-bottom:1px solid var(--border);
+  display:flex; justify-content:space-between; align-items:center; flex-shrink:0;
+}
+#pp-close { background:none; border:none; color:var(--muted); cursor:pointer; font-size:14px; }
+
+#pp-tabs { display:flex; border-bottom:1px solid var(--border); flex-shrink:0; }
+.pp-tab {
+  flex:1; background:none; border:none; padding:7px 4px; font-size:11px; font-weight:600;
+  color:var(--muted); cursor:pointer; border-bottom:2px solid transparent; transition:all .12s;
+}
+.pp-tab:hover { color:var(--text); }
+.pp-tab.active { color:var(--teal); border-bottom-color:var(--teal); }
+
+#pp-body { flex:1; overflow:hidden; }
+.pp-pane { display:none; height:100%; overflow-y:auto; padding:12px; }
+.pp-pane.active { display:block; }
+
+/* Pipeline diagram */
+.pipe-step {
+  background:var(--panel2); border:1px solid var(--border); border-radius:8px;
+  padding:9px 11px; display:flex; flex-direction:column; gap:3px;
+}
+.pipe-step.highlight { border-color:var(--teal); background:#0d1e22; }
+.pipe-step-top { display:flex; align-items:center; gap:8px; }
+.pipe-num {
+  width:20px; height:20px; border-radius:50%; background:var(--accent);
+  color:#fff; font-size:10px; font-weight:700; display:flex; align-items:center;
+  justify-content:center; flex-shrink:0;
+}
+.pipe-step.highlight .pipe-num { background:var(--teal); }
+.pipe-title { font-size:12px; font-weight:600; color:var(--text); }
+.pipe-desc  { font-size:10px; color:var(--muted); line-height:1.5; margin-top:2px; }
+.pipe-code  { font-family:monospace; font-size:10px; color:var(--accent); background:#0a1020;
+  border-radius:4px; padding:4px 7px; margin-top:4px; white-space:pre; overflow-x:auto; }
+.pipe-arrow { text-align:center; color:var(--border); font-size:16px; padding:3px 0; }
+
+/* Raw data */
+#raw-data-display {
+  font-family:monospace; font-size:10px; line-height:1.65; color:#7ab0d6;
+  white-space:pre-wrap; word-break:break-all;
+  background:#050a12; border-radius:6px; padding:10px;
+}
+.json-key    { color:#7ab0d6; }
+.json-str    { color:#98c379; }
+.json-num    { color:#e8b84b; }
+.json-bool   { color:#c678dd; }
+.json-null   { color:var(--muted); }
+.json-ellip  { color:#555; }
+
+/* Live state */
+.live-table { background:#050a12; border-radius:6px; overflow:hidden; }
+.live-row {
+  display:flex; justify-content:space-between; padding:5px 10px;
+  border-bottom:1px solid #0d1825; font-size:11px;
+}
+.live-row:last-child { border-bottom:none; }
+.live-row.hdr { background:#0a1520; font-size:10px; font-weight:700;
+  color:var(--muted); text-transform:uppercase; letter-spacing:.5px; }
+.live-row span:last-child { font-family:monospace; color:var(--yellow); }
+.live-row.fail-row span:last-child { color:var(--red); font-weight:700; }
+
+.live-json {
+  font-family:monospace; font-size:10px; color:var(--accent);
+  background:#050a12; border-radius:6px; padding:8px 10px;
+  line-height:1.7; white-space:pre;
+}
+
 /* Playback bar */
 #ctrl-bar {
   height:40px; flex-shrink:0; display:flex; align-items:center; gap:8px;
@@ -235,6 +321,8 @@ header h1 { font-size:14px; font-weight:600; white-space:nowrap; }
       <span class="rpill rpill-f" id="pill-f">0 flagged</span>
     </div>
     <div style="width:1px;height:20px;background:var(--border);margin:0 6px"></div>
+    <button id="pipeline-btn">&#9632; Data Pipeline</button>
+    <div style="width:1px;height:20px;background:var(--border);margin:0 6px"></div>
     <button id="import-btn">&#8593; Import Model</button>
     <span id="model-name">Robot Vacuum</span>
     <input type="file" id="file-input" accept=".glb,.gltf,.obj" />
@@ -249,6 +337,124 @@ header h1 { font-size:14px; font-weight:600; white-space:nowrap; }
       <div id="ep-list"></div>
     </div>
     <div id="scrim"></div>
+
+    <!-- Pipeline Panel (right-side drawer) -->
+    <div id="pipeline-panel">
+      <div id="pp-hdr">
+        <span>Data Pipeline</span>
+        <button id="pp-close">&#10005;</button>
+      </div>
+      <div id="pp-tabs">
+        <button class="pp-tab active" data-tab="pipeline">Pipeline</button>
+        <button class="pp-tab" data-tab="raw">Raw Data</button>
+        <button class="pp-tab" data-tab="live">Live State</button>
+      </div>
+      <div id="pp-body">
+
+        <!-- Pipeline tab -->
+        <div class="pp-pane active" id="pane-pipeline">
+          <div style="font-size:10px;color:var(--muted);margin-bottom:10px;line-height:1.5;">
+            How a robot vacuum run goes from simulation config to a reviewable 3D episode.
+          </div>
+
+          <div class="pipe-step">
+            <div class="pipe-step-top"><div class="pipe-num">1</div><div class="pipe-title">Episode Config</div></div>
+            <div class="pipe-desc">8 episodes defined with failure class and pre-seeded reviewer decision (approve / reject / flag).</div>
+            <div class="pipe-code">{"id":"ep_002","failure_class":"stuck_corner",
+ "pre_decision":"flag"}</div>
+          </div>
+          <div class="pipe-arrow">&#8595;</div>
+
+          <div class="pipe-step">
+            <div class="pipe-step-top"><div class="pipe-num">2</div><div class="pipe-title">Waypoint Generation</div></div>
+            <div class="pipe-desc">Random walk through a 6&times;6 m room — 5–8 intermediate waypoints connecting start to goal.</div>
+            <div class="pipe-code">waypoints = [[0.45,−0.63],[1.23,0.89],
+             [2.10,0.41],[2.87,1.14]]</div>
+          </div>
+          <div class="pipe-arrow">&#8595;</div>
+
+          <div class="pipe-step">
+            <div class="pipe-step-top"><div class="pipe-num">3</div><div class="pipe-title">Pure Pursuit Simulation @ 50 Hz</div></div>
+            <div class="pipe-desc">Differential-drive controller steers toward each waypoint. Produces an [x, y, &theta;] state per timestep.</div>
+            <div class="pipe-code">states[i] = [x + v&#183;cos(&theta;)&#183;dt,
+             y + v&#183;sin(&theta;)&#183;dt,
+             &theta; + &omega;&#183;dt]</div>
+          </div>
+          <div class="pipe-arrow">&#8595;</div>
+
+          <div class="pipe-step">
+            <div class="pipe-step-top"><div class="pipe-num">4</div><div class="pipe-title">Failure Injection</div></div>
+            <div class="pipe-desc">At <strong style="color:var(--red)">failure_step</strong>, the failure mode kicks in — oscillation, drift, stall, or e-stop — altering v and &omega;.</div>
+            <div class="pipe-code">if step &ge; failure_step:
+  &omega; += 2.4 &times; sin(t &times; 1.1)  # stuck</div>
+          </div>
+          <div class="pipe-arrow">&#8595;</div>
+
+          <div class="pipe-step">
+            <div class="pipe-step-top"><div class="pipe-num">5</div><div class="pipe-title">FastAPI — Episode JSON</div></div>
+            <div class="pipe-desc">Server exposes each episode over REST. The browser fetches on episode select.</div>
+            <div class="pipe-code">GET /api/episodes/ep_002
+&#8594; {states, v_linear, v_angular,
+   waypoints, failure_step, ...}</div>
+          </div>
+          <div class="pipe-arrow">&#8595;</div>
+
+          <div class="pipe-step">
+            <div class="pipe-step-top"><div class="pipe-num">6</div><div class="pipe-title">Three.js 3D Render</div></div>
+            <div class="pipe-desc">Each frame: robot disc positioned at states[step], speed-colored trail drawn, LED ring red on failure.</div>
+            <div class="pipe-code">robot.position.set(x, 0, y)
+robot.rotation.y = −&theta;
+ledRing.color = failure ? red : green</div>
+          </div>
+          <div class="pipe-arrow">&#8595;</div>
+
+          <div class="pipe-step highlight">
+            <div class="pipe-step-top"><div class="pipe-num">7</div><div class="pipe-title">Human Review</div></div>
+            <div class="pipe-desc">Reviewer watches playback, selects Approve / Reject / Flag (with reason label), submits decision.</div>
+            <div class="pipe-code">POST /api/review/ep_002
+{decision:"flag",notes:"[Stuck/Trapped]..."}</div>
+          </div>
+        </div>
+
+        <!-- Raw Data tab -->
+        <div class="pp-pane" id="pane-raw">
+          <div style="font-size:10px;color:var(--muted);margin-bottom:8px;">
+            Raw JSON for the selected episode (truncated arrays shown as &hellip;).
+          </div>
+          <div id="raw-data-display">Select an episode to view raw data.</div>
+        </div>
+
+        <!-- Live State tab -->
+        <div class="pp-pane" id="pane-live">
+          <div style="font-size:10px;color:var(--muted);margin-bottom:8px;">
+            State vector at the current playback step — updates in real time.
+          </div>
+          <div class="live-table">
+            <div class="live-row hdr"><span>Field</span><span>Value</span></div>
+            <div class="live-row"><span>Episode</span><span id="ls-ep">—</span></div>
+            <div class="live-row"><span>Step</span><span id="ls-step">—</span></div>
+            <div class="live-row"><span>x &nbsp;(m)</span><span id="ls-x">—</span></div>
+            <div class="live-row"><span>y &nbsp;(m)</span><span id="ls-y">—</span></div>
+            <div class="live-row"><span>&theta; &nbsp;(rad)</span><span id="ls-theta">—</span></div>
+            <div class="live-row"><span>v_linear (m/s)</span><span id="ls-vlin">—</span></div>
+            <div class="live-row"><span>v_angular (r/s)</span><span id="ls-vang">—</span></div>
+            <div class="live-row"><span>failure_step</span><span id="ls-fstep">—</span></div>
+            <div class="live-row" id="ls-fail-row"><span>in failure</span><span id="ls-infail">—</span></div>
+          </div>
+
+          <div style="margin-top:14px;font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">
+            states[step] raw vector
+          </div>
+          <div class="live-json" id="ls-json">—</div>
+
+          <div style="margin-top:14px;font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">
+            Waypoints (planned path)
+          </div>
+          <div class="live-json" id="ls-wps">—</div>
+        </div>
+
+      </div>
+    </div>
 
     <div id="right">
       <div id="viewer">
@@ -1041,6 +1247,118 @@ window.addEventListener('keydown', e => {
   else if (e.key === 'a') setDecision('approve');
   else if (e.key === 'r') setDecision('reject');
   else if (e.key === 'f') setDecision('flag');
+});
+
+// ── Pipeline Panel ────────────────────────────────────────────────────────────
+function togglePipelinePanel() {
+  const p  = document.getElementById('pipeline-panel');
+  const btn = document.getElementById('pipeline-btn');
+  const open = p.classList.toggle('open');
+  btn.classList.toggle('active', open);
+}
+document.getElementById('pipeline-btn').addEventListener('click', togglePipelinePanel);
+document.getElementById('pp-close').addEventListener('click', togglePipelinePanel);
+
+// Tab switching
+document.querySelectorAll('.pp-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.pp-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.pp-pane').forEach(p => p.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('pane-' + tab.dataset.tab).classList.add('active');
+  });
+});
+
+// Syntax-highlight a value for the raw data display
+function hlVal(v) {
+  if (v === null)            return `<span class="json-null">null</span>`;
+  if (typeof v === 'boolean') return `<span class="json-bool">${v}</span>`;
+  if (typeof v === 'number')  return `<span class="json-num">${v}</span>`;
+  if (typeof v === 'string')  return `<span class="json-str">"${v}"</span>`;
+  return String(v);
+}
+
+function renderRawData(ep) {
+  if (!ep) return;
+  const trunc = (arr, n = 3) => {
+    const head = arr.slice(0, n).map(v =>
+      Array.isArray(v) ? '[' + v.map(x => x.toFixed(3)).join(', ') + ']' : v.toFixed(3)
+    ).join(', ');
+    return `[${head}, <span class="json-ellip">… ${arr.length} total</span>]`;
+  };
+
+  const lines = [
+    `<span class="json-key">"id"</span>: ${hlVal(ep.id)},`,
+    `<span class="json-key">"failure_class"</span>: ${hlVal(ep.failure_class)},`,
+    `<span class="json-key">"failure_step"</span>: ${hlVal(ep.failure_step)},`,
+    `<span class="json-key">"n_timesteps"</span>: ${hlVal(ep.n_timesteps)},`,
+    `<span class="json-key">"description"</span>: ${hlVal(ep.description)},`,
+    ``,
+    `<span class="json-key">"waypoints"</span>: ${trunc(ep.waypoints, 4)},`,
+    ``,
+    `<span class="json-key">"states"</span>: ${trunc(ep.states, 3)},`,
+    `<span class="json-comment">  // each entry: [x_m, y_m, theta_rad]</span>`,
+    ``,
+    `<span class="json-key">"v_linear"</span>: ${trunc(ep.v_linear, 5)},`,
+    `<span class="json-comment">  // m/s at each step</span>`,
+    ``,
+    `<span class="json-key">"v_angular"</span>: ${trunc(ep.v_angular, 5)},`,
+    `<span class="json-comment">  // rad/s at each step</span>`,
+    ``,
+    `<span class="json-key">"timestamps"</span>: ${trunc(ep.timestamps, 4)},`,
+    `<span class="json-comment">  // seconds (dt = 0.02 s, 50 Hz)</span>`,
+  ];
+  document.getElementById('raw-data-display').innerHTML =
+    `{\n  ${lines.join('\n  ')}\n}`;
+}
+
+function updateLiveState() {
+  if (!episodeData) return;
+  const s = episodeData.states[currentStep];
+  const isF = episodeData.failure_step >= 0 && currentStep >= episodeData.failure_step;
+
+  document.getElementById('ls-ep').textContent    = episodeData.id;
+  document.getElementById('ls-step').textContent  = `${currentStep} / ${episodeData.n_timesteps - 1}`;
+  document.getElementById('ls-x').textContent     = s[0].toFixed(4);
+  document.getElementById('ls-y').textContent     = s[1].toFixed(4);
+  document.getElementById('ls-theta').textContent = s[2].toFixed(4);
+  document.getElementById('ls-vlin').textContent  = episodeData.v_linear[currentStep].toFixed(4);
+  document.getElementById('ls-vang').textContent  = episodeData.v_angular[currentStep].toFixed(4);
+  document.getElementById('ls-fstep').textContent = episodeData.failure_step >= 0 ? episodeData.failure_step : 'none';
+
+  const failRow = document.getElementById('ls-fail-row');
+  const failVal = document.getElementById('ls-infail');
+  failVal.textContent = isF ? 'YES' : 'no';
+  failRow.classList.toggle('fail-row', isF);
+
+  document.getElementById('ls-json').textContent =
+    `[${s[0].toFixed(4)}, ${s[1].toFixed(4)}, ${s[2].toFixed(4)}]`;
+
+  document.getElementById('ls-wps').textContent =
+    episodeData.waypoints.map((w, i) =>
+      `[${i}] x=${w[0].toFixed(3)}, y=${w[1].toFixed(3)}`
+    ).join('\n');
+}
+
+// Hook into loadEpisode to populate raw data
+const _origLoadEpisode = loadEpisode;
+loadEpisode = async (id) => {
+  await _origLoadEpisode(id);
+  renderRawData(episodeData);
+  updateLiveState();
+};
+
+// Update live state every animation frame (only when panel is open)
+const _origAnimate = animate;
+let liveFrameCounter = 0;
+requestAnimationFrame(function liveUpdater() {
+  requestAnimationFrame(liveUpdater);
+  if (++liveFrameCounter % 6 !== 0) return; // ~8 Hz update
+  const panel = document.getElementById('pipeline-panel');
+  if (panel.classList.contains('open') &&
+      document.getElementById('pane-live').classList.contains('active')) {
+    updateLiveState();
+  }
 });
 
 // ── Boot ──────────────────────────────────────────────────────────────────────
