@@ -3,464 +3,552 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Haptal Engine — Robot Vacuum Reviewer</title>
+<title>Haptal Engine</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<script type="importmap">
-{
-  "imports": {
-    "three":         "https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.module.js",
-    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.158.0/examples/jsm/"
-  }
-}
-</script>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.158.0/examples/jsm/"}}</script>
 <style>
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-:root {
-  --bg:     #08101a;
-  --panel:  #0d1824;
-  --panel2: #111f2e;
-  --border: #1a2d3f;
-  --text:   #c0d4e8;
-  --muted:  #4a6880;
-  --accent: #2e9fd6;
-  --green:  #1fbe78;
-  --red:    #d94040;
-  --yellow: #e0a830;
-  --teal:   #26bfb0;
-  --purple: #8a68d0;
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#07101a;--panel:#0d1924;--panel2:#111f30;--border:#192d42;
+  --text:#b8cee4;--muted:#3e6080;--accent:#2a8fcc;
+  --green:#18b870;--red:#cc3a3a;--yellow:#c89c28;--teal:#22b0a0;--purple:#7a5cc0;
 }
-html, body { height:100%; overflow:hidden; background:var(--bg); color:var(--text);
-  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; font-size:13px; }
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:13px}
+#app{display:flex;flex-direction:column;height:100vh}
 
-#app { display:flex; flex-direction:column; height:100vh; }
-
-/* ── Header ── */
-header {
-  display:flex; align-items:center; gap:0;
-  height:48px; flex-shrink:0;
-  background:#060d16; border-bottom:1px solid var(--border);
+/* ── Global Header ───────────────────────────────────────────────── */
+header{
+  display:flex;align-items:center;height:48px;flex-shrink:0;
+  background:#050d16;border-bottom:1px solid var(--border);gap:0;
 }
-.hdr-brand {
-  display:flex; align-items:center; gap:10px;
-  padding:0 18px; border-right:1px solid var(--border); height:100%; flex-shrink:0;
+.brand{display:flex;align-items:center;gap:9px;padding:0 18px;
+  border-right:1px solid var(--border);height:100%;flex-shrink:0}
+.brand-icon{width:28px;height:28px;border-radius:7px;
+  background:linear-gradient(135deg,#22b0a0,#1270a0);
+  display:flex;align-items:center;justify-content:center;
+  font-size:15px;font-weight:900;color:#fff}
+.brand-name{font-size:13px;font-weight:700;color:var(--teal);letter-spacing:.3px}
+.brand-sub{font-size:9px;color:var(--muted)}
+#breadcrumb{display:flex;align-items:center;gap:5px;padding:0 16px;flex:1;overflow:hidden}
+.bc-sep{color:var(--border);font-size:12px}
+.bc-item{font-size:11px;color:var(--muted);cursor:pointer;white-space:nowrap;
+  padding:2px 5px;border-radius:4px;transition:color .12s,background .12s}
+.bc-item:hover{color:var(--text);background:var(--panel2)}
+.bc-item.cur{color:var(--teal);font-weight:600;cursor:default}
+.bc-item.cur:hover{color:var(--teal);background:transparent}
+.hdr-right{display:flex;align-items:center;gap:7px;padding:0 14px;
+  border-left:1px solid var(--border);height:100%;flex-shrink:0}
+.stat-chip{font-size:10px;font-weight:700;padding:3px 9px;border-radius:10px}
+.sc-a{background:#07201a;color:var(--green)}.sc-r{background:#200a0a;color:var(--red)}
+.sc-f{background:#201800;color:var(--yellow)}.sc-p{background:#091625;color:var(--muted)}
+
+/* ── View system ─────────────────────────────────────────────────── */
+#view-container{flex:1;position:relative;overflow:hidden}
+.view{
+  position:absolute;inset:0;opacity:0;pointer-events:none;
+  transform:translateY(10px);transition:opacity .2s ease,transform .2s ease;
+  display:flex;flex-direction:column;overflow:hidden
 }
-.brand-icon {
-  width:28px; height:28px; border-radius:7px;
-  background:linear-gradient(135deg,#26bfb0,#1480aa);
-  display:flex; align-items:center; justify-content:center;
-  font-size:15px; font-weight:900; color:#fff; letter-spacing:-1px;
+.view.active{opacity:1;pointer-events:all;transform:translateY(0)}
+
+/* ── VIEW: Home ─────────────────────────────────────────────────── */
+#view-home{overflow-y:auto}
+.home-top{
+  display:flex;align-items:center;gap:12px;padding:18px 20px 14px;
+  border-bottom:1px solid var(--border);flex-shrink:0;background:#060e18;
 }
-.brand-name { font-size:14px; font-weight:700; color:var(--teal); letter-spacing:.4px; }
-.brand-sub  { font-size:10px; color:var(--muted); margin-top:1px; }
-
-#ep-pill-bar {
-  display:flex; align-items:center; gap:5px;
-  padding:0 14px; flex:1; overflow-x:auto; height:100%;
-  scrollbar-width:none;
+.home-title{font-size:15px;font-weight:700;color:var(--text)}
+.home-sub{font-size:11px;color:var(--muted);margin-top:1px}
+.search-box{
+  margin-left:auto;display:flex;align-items:center;gap:0;
+  border:1px solid var(--border);border-radius:6px;background:var(--panel);
+  padding:5px 10px;
 }
-#ep-pill-bar::-webkit-scrollbar { display:none; }
-.ep-pill {
-  display:flex; align-items:center; gap:5px;
-  padding:4px 11px; border-radius:12px; cursor:pointer; flex-shrink:0;
-  border:1px solid var(--border); background:var(--panel);
-  font-size:10px; font-weight:600; transition:all .12s; color:var(--muted);
+.search-box input{background:transparent;border:none;outline:none;color:var(--text);
+  font-size:11px;width:180px;font-family:inherit}
+.search-box input::placeholder{color:var(--muted)}
+#ds-grid{
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(268px,1fr));
+  gap:14px;padding:18px 20px;
 }
-.ep-pill:hover { border-color:var(--accent); color:var(--text); }
-.ep-pill.active { border-color:var(--teal); background:#0a1f2e; color:var(--text); }
-.ep-pill .pdot { width:6px; height:6px; border-radius:50%; flex-shrink:0; }
-.pdot-approve { background:var(--green); }
-.pdot-reject  { background:var(--red); }
-.pdot-flag    { background:var(--yellow); }
-.pdot-pending { background:#1e3248; }
-
-.hdr-right {
-  display:flex; align-items:center; gap:8px;
-  padding:0 14px; border-left:1px solid var(--border); height:100%; flex-shrink:0;
+.ds-card{
+  background:var(--panel);border:1px solid var(--border);border-radius:10px;
+  padding:16px;cursor:pointer;transition:all .15s;
+  display:flex;flex-direction:column;gap:10px;
+  border-top:3px solid var(--card-color,var(--border));
 }
-.stat-chip { font-size:10px; font-weight:700; padding:3px 9px; border-radius:10px; }
-.sc-a { background:#08211a; color:var(--green); }
-.sc-r { background:#230b0b; color:var(--red); }
-.sc-f { background:#231d06; color:var(--yellow); }
-.sc-p { background:#0a1a28; color:var(--muted); }
+.ds-card:hover{border-color:var(--card-color,var(--accent));
+  transform:translateY(-2px);box-shadow:0 8px 28px rgba(0,0,0,.4)}
+.card-header{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+.card-name{font-size:13px;font-weight:700;color:var(--text);line-height:1.3}
+.card-count{font-size:9px;font-weight:700;padding:2px 7px;border-radius:8px;
+  background:var(--panel2);border:1px solid var(--border);color:var(--muted);white-space:nowrap;flex-shrink:0}
+.card-org{font-size:10px;color:var(--muted);margin-top:2px}
+.card-desc{font-size:10px;color:var(--muted);line-height:1.55}
+.card-tags{display:flex;flex-wrap:wrap;gap:4px}
+.card-tag{font-size:9px;padding:2px 7px;border-radius:8px;
+  background:var(--panel2);border:1px solid var(--border);color:var(--muted)}
+.card-footer{display:flex;align-items:center;justify-content:space-between;
+  font-size:9px;color:var(--muted);border-top:1px solid var(--border);padding-top:8px;margin-top:2px}
+.card-license{opacity:.7}
+.card-arrow{font-size:14px;color:var(--card-color,var(--muted))}
 
-/* ── Three-column body ── */
-#cols { display:flex; flex:1; overflow:hidden; }
-
-/* ─── LEFT: Episode Input ─── */
-#input-panel {
-  width:240px; flex-shrink:0; border-right:1px solid var(--border);
-  background:var(--panel); display:flex; flex-direction:column; overflow:hidden;
+/* ── VIEW: Dataset ──────────────────────────────────────────────── */
+#view-dataset{flex-direction:row}
+#ds-sidebar{
+  width:272px;flex-shrink:0;border-right:1px solid var(--border);
+  display:flex;flex-direction:column;overflow-y:auto;
+  background:var(--panel);
+  border-top:3px solid var(--ds-color,var(--border));
 }
-.panel-hdr {
-  padding:10px 14px; font-size:9px; font-weight:700; color:var(--muted);
-  text-transform:uppercase; letter-spacing:1.4px; border-bottom:1px solid var(--border);
-  display:flex; align-items:center; gap:7px; flex-shrink:0; background:#080f1a;
+.ds-sidebar-inner{padding:18px 16px;display:flex;flex-direction:column;gap:14px}
+.ds-big-name{font-size:16px;font-weight:800;color:var(--text);line-height:1.2}
+.ds-org-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.ds-org{font-size:10px;color:var(--muted)}
+.ds-year{font-size:10px;font-weight:700;padding:1px 6px;border-radius:5px;
+  background:var(--panel2);border:1px solid var(--border);color:var(--muted)}
+.ds-license-badge{font-size:9px;padding:1px 6px;border-radius:5px;
+  background:var(--panel2);border:1px solid var(--border);color:var(--muted)}
+.ds-full-desc{font-size:11px;color:var(--muted);line-height:1.6}
+.ds-stat-row{display:flex;flex-direction:column;gap:5px}
+.ds-stat{display:flex;justify-content:space-between;font-size:11px;
+  padding:4px 0;border-bottom:1px solid #0a1828}
+.ds-stat:last-child{border-bottom:none}
+.ds-stat-k{color:var(--muted)}.ds-stat-v{font-family:monospace;color:var(--text)}
+#ep-list-panel{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:8px}
+.ep-list-hdr{
+  display:flex;align-items:center;justify-content:space-between;
+  font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;
+  letter-spacing:1.2px;padding:0 2px;margin-bottom:4px;
 }
-.phdr-dot { width:7px; height:7px; border-radius:50%; }
-
-#input-scroll { flex:1; overflow-y:auto; padding:16px 14px; display:flex; flex-direction:column; gap:14px; }
-#input-scroll::-webkit-scrollbar { width:3px; }
-#input-scroll::-webkit-scrollbar-thumb { background:#1a2d3f; border-radius:2px; }
-
-/* File card */
-.file-card {
-  background:#060d16; border:1px solid var(--border); border-radius:8px;
-  padding:12px 13px; display:flex; flex-direction:column; gap:8px;
+.ep-row{
+  background:var(--panel);border:1px solid var(--border);border-radius:8px;
+  padding:11px 14px;display:flex;align-items:center;gap:12px;
+  cursor:default;transition:border-color .12s,background .12s;
 }
-.file-icon-row { display:flex; align-items:center; gap:9px; }
-.file-icon {
-  width:32px; height:32px; border-radius:6px; background:#0d1e30;
-  border:1px solid var(--border); display:flex; align-items:center; justify-content:center;
-  font-size:16px; flex-shrink:0;
+.ep-row:hover{border-color:#2a4a6a;background:var(--panel2)}
+.ep-num{font-size:10px;color:var(--muted);font-family:monospace;width:28px;flex-shrink:0;text-align:right}
+.ep-id{font-size:11px;font-weight:700;font-family:monospace;flex:1;min-width:0}
+.ep-meta{font-size:10px;color:var(--muted)}
+.ep-rdot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.ep-rdot-approve{background:var(--green)}.ep-rdot-reject{background:var(--red)}
+.ep-rdot-flag{background:var(--yellow)}.ep-rdot-pending{background:#1e3248}
+.ep-run-btn{
+  padding:5px 14px;border-radius:6px;font-size:10px;font-weight:700;
+  background:var(--teal)15;border:1px solid var(--teal)40;color:var(--teal);
+  cursor:pointer;flex-shrink:0;transition:all .12s;
 }
-.file-name { font-size:12px; font-weight:600; color:var(--text); font-family:monospace; }
-.file-meta { font-size:10px; color:var(--muted); margin-top:1px; }
+.ep-run-btn:hover{background:var(--teal)28;border-color:var(--teal)}
+.badge{display:inline-block;padding:2px 7px;border-radius:6px;font-size:9px;font-weight:600;white-space:nowrap}
+.b-nominal{background:#07200f;color:var(--green)}
+.b-stuck_corner{background:#180d30;color:#b080ff}
+.b-missed_zone{background:#05122a;color:#60a0ff}
+.b-cliff_error{background:#200808;color:#ff6060}
+.b-low_battery{background:#181818;color:var(--muted)}
+.b-wheel_slip{background:#1e1400;color:var(--yellow)}
+.b-tangled{background:#180a00;color:#ff8830}
+.b-return_fail{background:#100520;color:#9a50ff}
 
-.input-kv { display:flex; flex-direction:column; gap:5px; }
-.kv-row { display:flex; justify-content:space-between; align-items:center;
-  padding:5px 0; border-bottom:1px solid #0a1828; font-size:11px; }
-.kv-row:last-child { border-bottom:none; }
-.kv-key { color:var(--muted); }
-.kv-val { font-family:monospace; color:var(--text); font-size:11px; }
+/* ── VIEW: Engine ───────────────────────────────────────────────── */
+#view-engine{overflow-y:auto;padding:28px 36px;gap:18px;align-items:stretch;max-width:900px;margin:0 auto;width:100%}
+.eng-run-hdr{display:flex;flex-direction:column;gap:4px;margin-bottom:4px}
+.eng-run-label{font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1.2px}
+.eng-run-ep{font-size:18px;font-weight:800;color:var(--text);display:flex;align-items:center;gap:10px}
+.eng-run-sub{font-size:11px;color:var(--muted)}
 
-/* Arrow connector */
-.flow-arrow {
-  display:flex; flex-direction:column; align-items:center; gap:3px;
-  padding:2px 0;
+.stage-card{
+  background:var(--panel);border:1px solid var(--border);border-radius:10px;
+  padding:14px 18px;display:flex;flex-direction:column;gap:8px;
+  transition:border-color .25s,opacity .25s,background .25s;
+  opacity:.35;flex-shrink:0;
 }
-.flow-arrow-line { width:1px; height:18px; background:linear-gradient(var(--border),var(--teal)); }
-.flow-arrow-head { color:var(--teal); font-size:11px; line-height:1; }
-.flow-arrow-label { font-size:9px; color:var(--muted); letter-spacing:.8px; text-transform:uppercase; }
-
-/* Processing badge */
-.proc-card {
-  background:linear-gradient(135deg,#0a1e30,#081828);
-  border:1px solid var(--teal)33; border-radius:8px;
-  padding:11px 13px; display:flex; align-items:center; gap:10px;
+.stage-card.running{opacity:1;border-color:var(--teal)55;background:#081822}
+.stage-card.done{opacity:.8;border-color:var(--green)30}
+.stage-hdr{display:flex;align-items:center;gap:10px}
+.stage-num{
+  width:22px;height:22px;border-radius:50%;border:1px solid var(--border);
+  display:flex;align-items:center;justify-content:center;
+  font-size:9px;font-weight:700;color:var(--muted);flex-shrink:0;
 }
-.proc-icon {
-  width:30px; height:30px; border-radius:6px;
-  background:linear-gradient(135deg,#26bfb0,#1480aa);
-  display:flex; align-items:center; justify-content:center;
-  font-size:14px; font-weight:900; color:#fff; flex-shrink:0;
+.stage-card.running .stage-num{border-color:var(--teal);color:var(--teal)}
+.stage-card.done .stage-num{border-color:var(--green);color:var(--green);background:var(--green)18}
+.stage-name{font-size:13px;font-weight:700;color:var(--text);flex:1}
+.stage-status{font-size:10px;font-family:monospace;font-weight:600}
+.stage-desc{font-size:10px;color:var(--muted);padding-left:32px}
+.stage-bar-track{height:5px;background:#070f1a;border-radius:3px;overflow:hidden}
+.stage-bar-fill{height:100%;width:0%;border-radius:3px;
+  background:linear-gradient(90deg,var(--teal),var(--accent));transition:width .12s linear}
+.stage-card.done .stage-bar-fill{background:var(--green);width:100%}
+.stage-logs{
+  font-size:10px;font-family:monospace;color:var(--muted);padding-left:32px;
+  display:flex;flex-direction:column;gap:2px;max-height:64px;overflow:hidden;
 }
-.proc-label { font-size:11px; font-weight:700; color:var(--teal); }
-.proc-sub   { font-size:9px; color:var(--muted); margin-top:2px; }
+.log-line{display:flex;gap:8px;animation:fadein .2s ease}
+@keyframes fadein{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:none}}
+.log-ts{color:#1a3050;flex-shrink:0}.log-msg{color:var(--muted)}
+.log-msg.hi{color:var(--text)}
 
-/* Status indicator */
-.status-row { display:flex; align-items:center; gap:7px; }
-.status-dot { width:7px; height:7px; border-radius:50%; flex-shrink:0; }
-.status-dot.running { background:var(--green); box-shadow:0 0 6px var(--green)88; animation:pulse 1.8s infinite; }
-.status-dot.failure { background:var(--red); box-shadow:0 0 6px var(--red)88; }
-@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.45} }
-.status-text { font-size:11px; font-weight:600; }
-
-/* Sensor readings */
-.sensor-block {
-  background:#060d16; border:1px solid var(--border); border-radius:8px;
-  padding:10px 13px; display:flex; flex-direction:column; gap:6px;
+/* Engine output card */
+#eng-output{
+  background:var(--panel);border:1px solid var(--border);border-radius:12px;
+  padding:24px;display:none;flex-direction:column;gap:14px;align-items:center;
+  text-align:center;flex-shrink:0;
 }
-.sensor-title { font-size:9px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:1px; }
-.sensor-row { display:flex; justify-content:space-between; font-size:11px; }
-.sensor-key { color:var(--muted); }
-.sensor-val { font-family:monospace; }
-
-/* ─── CENTER: Engine ─── */
-#engine-panel { flex:1; display:flex; flex-direction:column; overflow:hidden; min-width:0; }
-
-.engine-hdr {
-  height:40px; flex-shrink:0; display:flex; align-items:center; gap:10px;
-  padding:0 16px; background:#060d16; border-bottom:1px solid var(--border);
+#eng-output.show{display:flex}
+.out-label{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1.4px}
+.out-badge{
+  padding:14px 40px;border-radius:10px;font-size:22px;font-weight:900;letter-spacing:.3px;
 }
-.engine-title { font-size:11px; font-weight:700; color:var(--teal); letter-spacing:.5px; display:flex; align-items:center; gap:6px; }
-.engine-ep-tag { font-size:10px; color:var(--muted); font-family:monospace; }
-.engine-badge {
-  padding:2px 8px; border-radius:8px; font-size:9px; font-weight:700;
+.out-approve{background:#061a0e;border:2px solid var(--green)60;color:var(--green)}
+.out-reject{background:#1a0606;border:2px solid var(--red)60;color:var(--red)}
+.out-flag{background:#1a1200;border:2px solid var(--yellow)60;color:var(--yellow)}
+.out-notes{font-size:11px;color:var(--muted);max-width:480px;line-height:1.6}
+#btn-open-viz{
+  margin-top:6px;padding:11px 36px;border-radius:8px;
+  background:var(--teal);border:none;color:#04101a;
+  font-size:13px;font-weight:700;cursor:pointer;
+  opacity:0;pointer-events:none;transition:opacity .3s,transform .3s;transform:translateY(6px);
 }
-.engine-spacer { flex:1; }
-.engine-status { font-size:10px; font-family:monospace; font-weight:600; }
+#btn-open-viz.ready{opacity:1;pointer-events:all;transform:none}
+#btn-open-viz:hover{background:#28c8b8}
 
-#viewer { position:relative; flex:1; min-height:0; background:#05080f; }
-#viewer canvas { display:block; }
+/* ── VIEW: Visualizer ───────────────────────────────────────────── */
+#view-viz{flex-direction:row}
+#viz-cols{display:flex;flex:1;overflow:hidden}
 
-/* Minimal HUD */
-#hud {
-  position:absolute; top:10px; left:10px;
-  background:rgba(4,8,16,0.82); border:1px solid #162030;
-  border-radius:8px; padding:8px 12px; font-size:10px; line-height:1.9;
-  pointer-events:none; backdrop-filter:blur(8px); min-width:140px;
+/* Left panel */
+#viz-left{
+  width:224px;flex-shrink:0;border-right:1px solid var(--border);
+  background:var(--panel);display:flex;flex-direction:column;overflow:hidden;
 }
-.hl { color:var(--muted); margin-right:4px; font-size:9px; }
-.hv { font-family:monospace; color:var(--text); }
-#hud-fail { display:none; font-weight:700; color:var(--red); font-size:9px; margin-top:2px;
-  padding:2px 6px; background:rgba(217,64,64,.12); border-radius:4px; border:1px solid rgba(217,64,64,.3); }
-#hud-ok   { display:none; font-size:9px; color:var(--green); margin-top:2px; }
-
-#fail-ring { position:absolute; inset:0; pointer-events:none; transition:box-shadow .2s; }
-#fail-ring.on { box-shadow:inset 0 0 60px rgba(217,64,64,.15); border:1px solid rgba(217,64,64,.2); }
-
-#chart-wrap { height:100px; flex-shrink:0; border-top:1px solid var(--border); padding:4px 14px 3px; background:#060d16; }
-#vel-chart  { width:100%!important; height:100%!important; }
-
-#ctrl-bar {
-  height:38px; flex-shrink:0; display:flex; align-items:center; gap:7px;
-  padding:0 12px; background:#060d16; border-top:1px solid var(--border);
+.panel-hdr{
+  padding:9px 13px;font-size:9px;font-weight:700;color:var(--muted);
+  text-transform:uppercase;letter-spacing:1.4px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:7px;flex-shrink:0;background:#060d16;
 }
-.cbtn { background:var(--panel); border:1px solid var(--border); border-radius:5px;
-  color:var(--text); cursor:pointer; font-size:12px; width:28px; height:26px;
-  display:flex; align-items:center; justify-content:center; flex-shrink:0; }
-.cbtn:hover { border-color:var(--accent); }
-#scrubber { flex:1; accent-color:var(--teal); cursor:pointer; }
-#step-disp { font-size:10px; color:var(--muted); font-family:monospace; min-width:64px; text-align:right; }
-#speed-sel { background:var(--panel); border:1px solid var(--border); border-radius:5px;
-  color:var(--text); font-size:10px; padding:2px 5px; cursor:pointer; }
-
-/* ─── RIGHT: Output / Labels ─── */
-#label-panel {
-  width:260px; flex-shrink:0; border-left:1px solid var(--border);
-  background:var(--panel); display:flex; flex-direction:column; overflow:hidden;
+.phdr-dot{width:7px;height:7px;border-radius:50%}
+#viz-left-scroll{flex:1;overflow-y:auto;padding:12px 13px;display:flex;flex-direction:column;gap:12px}
+.vl-card{background:#060d16;border:1px solid var(--border);border-radius:8px;padding:11px 12px;display:flex;flex-direction:column;gap:7px}
+.vl-kv{display:flex;flex-direction:column;gap:4px}
+.vl-row{display:flex;justify-content:space-between;font-size:10px;padding:3px 0;border-bottom:1px solid #0a1828}
+.vl-row:last-child{border-bottom:none}
+.vl-k{color:var(--muted)}.vl-v{font-family:monospace;color:var(--text);font-size:10px}
+.flow-arrow{display:flex;flex-direction:column;align-items:center;gap:2px;padding:2px 0}
+.flow-line{width:1px;height:16px;background:linear-gradient(var(--border),var(--teal))}
+.flow-head{color:var(--teal);font-size:11px;line-height:1}
+.flow-lbl{font-size:9px;color:var(--muted);letter-spacing:.8px;text-transform:uppercase}
+.proc-card{
+  background:linear-gradient(135deg,#091c2c,#060e1c);
+  border:1px solid var(--teal)22;border-radius:8px;
+  padding:10px 12px;display:flex;align-items:center;gap:9px;
 }
+.proc-ico{width:28px;height:28px;border-radius:6px;background:linear-gradient(135deg,#22b0a0,#1270a0);
+  display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;color:#fff;flex-shrink:0}
+.proc-lbl{font-size:11px;font-weight:700;color:var(--teal)}
+.proc-sub{font-size:9px;color:var(--muted);margin-top:1px}
+.sensor-block{background:#060d16;border:1px solid var(--border);border-radius:8px;padding:9px 12px;display:flex;flex-direction:column;gap:5px}
+.sensor-ttl{font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.8px}
+.status-row{display:flex;align-items:center;gap:7px}
+.status-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.status-dot.running{background:var(--green);box-shadow:0 0 5px var(--green)66;animation:pulse 1.8s infinite}
+.status-dot.failure{background:var(--red);box-shadow:0 0 5px var(--red)66}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.sensor-row{display:flex;justify-content:space-between;font-size:10px}
+.sensor-k{color:var(--muted)}.sensor-v{font-family:monospace}
 
-/* AI Decision card */
-#ai-decision-card {
-  flex-shrink:0; padding:14px; border-bottom:1px solid var(--border);
-  display:flex; flex-direction:column; gap:10px; background:#080f1a;
+/* Center */
+#viz-center{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+.eng-hdr{height:38px;flex-shrink:0;display:flex;align-items:center;gap:10px;
+  padding:0 14px;background:#050d16;border-bottom:1px solid var(--border)}
+.eng-title{font-size:11px;font-weight:700;color:var(--teal);letter-spacing:.4px}
+.eng-ep-tag{font-size:10px;color:var(--muted);font-family:monospace}
+.eng-badge{padding:2px 7px;border-radius:7px;font-size:9px;font-weight:700}
+.eng-spacer{flex:1}
+.eng-status{font-size:10px;font-family:monospace;font-weight:600}
+#three-viewer{position:relative;flex:1;min-height:0;background:#04070e}
+#three-viewer canvas{display:block}
+#hud{
+  position:absolute;top:9px;left:9px;
+  background:rgba(3,7,14,.82);border:1px solid #142030;
+  border-radius:8px;padding:7px 11px;font-size:10px;line-height:1.9;
+  pointer-events:none;backdrop-filter:blur(8px);min-width:136px;
 }
-.decision-label { font-size:9px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:1.2px; }
-.decision-badge {
-  padding:7px 14px; border-radius:8px; font-size:14px; font-weight:800;
-  text-align:center; letter-spacing:.3px;
-}
-.d-approve { background:#081f12; border:1px solid #1a5030; color:var(--green); }
-.d-reject  { background:#1f0808; border:1px solid #501a1a; color:var(--red); }
-.d-flag    { background:#1f1500; border:1px solid #503800; color:var(--yellow); }
-.d-pending { background:#0a1828; border:1px solid var(--border); color:var(--muted); }
+.hl{color:var(--muted);margin-right:4px;font-size:9px}.hv{font-family:monospace;color:var(--text)}
+#hud-fail{display:none;font-weight:700;color:var(--red);font-size:9px;margin-top:2px;
+  padding:2px 6px;background:rgba(204,58,58,.1);border-radius:4px;border:1px solid rgba(204,58,58,.25)}
+#hud-ok{display:none;font-size:9px;color:var(--green);margin-top:2px}
+#fail-ring{position:absolute;inset:0;pointer-events:none;transition:box-shadow .2s}
+#fail-ring.on{box-shadow:inset 0 0 60px rgba(204,58,58,.14);border:1px solid rgba(204,58,58,.18)}
+#chart-wrap{height:95px;flex-shrink:0;border-top:1px solid var(--border);padding:3px 12px;background:#050d16}
+#vel-chart{width:100%!important;height:100%!important}
+#ctrl-bar{height:36px;flex-shrink:0;display:flex;align-items:center;gap:7px;
+  padding:0 11px;background:#050d16;border-top:1px solid var(--border)}
+.cbtn{background:var(--panel);border:1px solid var(--border);border-radius:5px;
+  color:var(--text);cursor:pointer;font-size:12px;width:27px;height:24px;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.cbtn:hover{border-color:var(--accent)}
+#scrubber{flex:1;accent-color:var(--teal);cursor:pointer}
+#step-disp{font-size:10px;color:var(--muted);font-family:monospace;min-width:62px;text-align:right}
+#speed-sel{background:var(--panel);border:1px solid var(--border);border-radius:5px;
+  color:var(--text);font-size:10px;padding:2px 4px;cursor:pointer}
 
-.decision-notes {
-  font-size:10px; color:var(--muted); line-height:1.5; font-style:italic;
+/* Right panel */
+#viz-right{width:252px;flex-shrink:0;border-left:1px solid var(--border);
+  background:var(--panel);display:flex;flex-direction:column;overflow:hidden}
+#ai-decision-card{
+  flex-shrink:0;padding:13px;border-bottom:1px solid var(--border);
+  display:flex;flex-direction:column;gap:9px;background:#060d16;
 }
-
-/* Review queue */
-#review-queue { flex:1; overflow-y:auto; }
-#review-queue::-webkit-scrollbar { width:3px; }
-#review-queue::-webkit-scrollbar-thumb { background:#1a2d3f; border-radius:2px; }
-
-.rq-item {
-  padding:8px 14px; border-bottom:1px solid #0a1828; cursor:pointer;
-  display:flex; flex-direction:column; gap:2px; transition:background .1s;
-}
-.rq-item:hover { background:#0d1e30; }
-.rq-item.active { background:#0a1e32; border-left:2px solid var(--teal); padding-left:12px; }
-.rq-top { display:flex; align-items:center; gap:7px; }
-.rq-id  { font-size:11px; font-weight:700; font-family:monospace; }
-.rq-sub { font-size:9px; color:var(--muted); margin-top:1px; }
-.rdot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
-.rdot-approve { background:var(--green); }
-.rdot-reject  { background:var(--red); }
-.rdot-flag    { background:var(--yellow); }
-.rdot-pending { background:#1e3248; }
-
-.badge { display:inline-block; padding:1px 6px; border-radius:6px; font-size:9px; font-weight:600; white-space:nowrap; }
-.b-nominal      { background:#082012; color:var(--green); }
-.b-stuck_corner { background:#1a0d30; color:#b080ff; }
-.b-missed_zone  { background:#051424; color:#70b0ff; }
-.b-cliff_error  { background:#200808; color:#ff7070; }
-.b-low_battery  { background:#141414; color:var(--muted); }
-.b-wheel_slip   { background:#1e1400; color:var(--yellow); }
-.b-tangled      { background:#160a00; color:#ff9040; }
-.b-unknown      { background:#111; color:var(--muted); }
-
-/* Review actions */
-#review-actions {
-  flex-shrink:0; border-top:2px solid var(--border);
-  background:#06101a; padding:12px 14px; display:flex; flex-direction:column; gap:8px;
-}
-.ra-hdr { font-size:9px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:1px; }
-
-#rev-btns { display:flex; gap:5px; }
-.rev-btn {
-  flex:1; padding:6px 4px; border-radius:6px; border:1px solid transparent;
-  font-size:11px; font-weight:700; cursor:pointer; transition:all .12s; text-align:center;
-}
-.rev-btn.approve { background:#081f12; border-color:#1a3d24; color:var(--green); }
-.rev-btn.approve:hover, .rev-btn.approve.active { background:#0e2e1a; border-color:var(--green); }
-.rev-btn.reject  { background:#1f0808; border-color:#4a1818; color:var(--red); }
-.rev-btn.reject:hover,  .rev-btn.reject.active  { background:#2e1010; border-color:var(--red); }
-.rev-btn.flag    { background:#1f1500; border-color:#4a3600; color:var(--yellow); }
-.rev-btn.flag:hover,    .rev-btn.flag.active    { background:#2e1e00; border-color:var(--yellow); }
-
-#flag-panel { display:none; flex-direction:column; gap:5px; }
-#flag-panel.visible { display:flex; }
-.flag-banner {
-  font-size:9px; font-weight:700; color:var(--yellow);
-  padding:5px 8px; background:rgba(35,24,0,.7); border-radius:5px;
-  border:1px solid #3a2800;
-}
-#flag-chips { display:flex; flex-wrap:wrap; gap:4px; }
-.flag-chip {
-  padding:3px 8px; border-radius:8px; background:#181000; border:1px solid #2a1e00;
-  color:var(--yellow); font-size:9px; cursor:pointer; transition:all .1s;
-}
-.flag-chip:hover, .flag-chip.active { background:#28180a; border-color:var(--yellow); }
-
-#rev-notes {
-  background:#040a12; border:1px solid var(--border); border-radius:5px;
-  color:var(--text); font-size:10px; padding:6px 8px; resize:none; height:44px;
-  font-family:inherit; width:100%;
-}
-#rev-notes:focus { outline:none; border-color:var(--teal); }
-
-#rev-bottom { display:flex; align-items:center; justify-content:space-between; }
-#prev-label { font-size:10px; }
-#btn-submit {
-  background:var(--teal); border:none; border-radius:6px; color:#05101a;
-  font-size:11px; font-weight:700; cursor:pointer; padding:5px 16px;
-}
-#btn-submit:hover { background:#30d4c6; }
-#btn-submit:disabled { background:#0d1e2e; color:var(--muted); cursor:default; }
-
-/* Summary bar */
-#review-summary-bar {
-  flex-shrink:0; padding:8px 14px; border-top:1px solid var(--border);
-  display:flex; justify-content:space-around; background:#05080f;
-}
-.rsb-item { text-align:center; }
-.rsb-num  { font-size:17px; font-weight:700; font-family:monospace; }
-.rsb-lbl  { font-size:8px; color:var(--muted); text-transform:uppercase; letter-spacing:.5px; }
+.dec-lbl{font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1.2px}
+.dec-badge{padding:8px 14px;border-radius:8px;font-size:15px;font-weight:800;text-align:center}
+.d-approve{background:#07200e;border:1px solid var(--green)40;color:var(--green)}
+.d-reject{background:#200707;border:1px solid var(--red)40;color:var(--red)}
+.d-flag{background:#201600;border:1px solid var(--yellow)40;color:var(--yellow)}
+.d-pending{background:#0a1828;border:1px solid var(--border);color:var(--muted)}
+.dec-notes{font-size:10px;color:var(--muted);line-height:1.5;font-style:italic}
+#ep-queue{flex:1;overflow-y:auto}
+.rq-item{padding:8px 13px;border-bottom:1px solid #09182a;cursor:pointer;
+  display:flex;flex-direction:column;gap:2px;transition:background .1s}
+.rq-item:hover{background:#0c1e30}
+.rq-item.active{background:#091e32;border-left:2px solid var(--teal);padding-left:11px}
+.rq-top{display:flex;align-items:center;gap:6px}
+.rq-id{font-size:11px;font-weight:700;font-family:monospace}
+.rq-sub{font-size:9px;color:var(--muted);margin-top:1px}
+#review-actions{flex-shrink:0;border-top:2px solid var(--border);
+  background:#05101a;padding:11px 13px;display:flex;flex-direction:column;gap:8px}
+.ra-hdr{font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px}
+#rev-btns{display:flex;gap:5px}
+.rev-btn{flex:1;padding:6px 4px;border-radius:6px;border:1px solid transparent;
+  font-size:11px;font-weight:700;cursor:pointer;transition:all .12s;text-align:center}
+.rev-btn.approve{background:#07200e;border-color:#163a22;color:var(--green)}
+.rev-btn.approve:hover,.rev-btn.approve.active{background:#0d2e18;border-color:var(--green)}
+.rev-btn.reject{background:#1f0707;border-color:#461414;color:var(--red)}
+.rev-btn.reject:hover,.rev-btn.reject.active{background:#2c1010;border-color:var(--red)}
+.rev-btn.flag{background:#1f1400;border-color:#463200;color:var(--yellow)}
+.rev-btn.flag:hover,.rev-btn.flag.active{background:#2c1c00;border-color:var(--yellow)}
+#flag-panel{display:none;flex-direction:column;gap:5px}
+#flag-panel.visible{display:flex}
+.flag-banner{font-size:9px;font-weight:700;color:var(--yellow);
+  padding:4px 7px;background:rgba(32,22,0,.7);border-radius:5px;border:1px solid #382600}
+#flag-chips{display:flex;flex-wrap:wrap;gap:4px}
+.flag-chip{padding:3px 8px;border-radius:8px;background:#181000;border:1px solid #282000;
+  color:var(--yellow);font-size:9px;cursor:pointer;transition:all .1s}
+.flag-chip:hover,.flag-chip.active{background:#241a00;border-color:var(--yellow)}
+#rev-notes{background:#040a12;border:1px solid var(--border);border-radius:5px;
+  color:var(--text);font-size:10px;padding:5px 8px;resize:none;height:42px;
+  font-family:inherit;width:100%}
+#rev-notes:focus{outline:none;border-color:var(--teal)}
+#rev-bottom{display:flex;align-items:center;justify-content:space-between}
+#prev-label{font-size:10px}
+#btn-submit{background:var(--teal);border:none;border-radius:6px;color:#04101a;
+  font-size:11px;font-weight:700;cursor:pointer;padding:5px 15px}
+#btn-submit:hover{background:#28c8b8}
+#btn-submit:disabled{background:#0d1e2e;color:var(--muted);cursor:default}
+#review-summary-bar{flex-shrink:0;padding:8px 13px;border-top:1px solid var(--border);
+  display:flex;justify-content:space-around;background:#040b14}
+.rsb-item{text-align:center}
+.rsb-num{font-size:17px;font-weight:700;font-family:monospace}
+.rsb-lbl{font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px}
 </style>
 </head>
 <body>
 <div id="app">
 
-  <header>
-    <div class="hdr-brand">
-      <div class="brand-icon">H</div>
+<!-- ── Global Header ── -->
+<header>
+  <div class="brand" style="cursor:pointer" onclick="navigateTo('home')">
+    <div class="brand-icon">H</div>
+    <div><div class="brand-name">HAPTAL ENGINE</div><div class="brand-sub">Human-in-the-Loop Review</div></div>
+  </div>
+  <div id="breadcrumb"></div>
+  <div class="hdr-right">
+    <span class="stat-chip sc-a" id="pill-a">— approved</span>
+    <span class="stat-chip sc-r" id="pill-r">— rejected</span>
+    <span class="stat-chip sc-f" id="pill-f">— flagged</span>
+    <span class="stat-chip sc-p" id="pill-p">— pending</span>
+  </div>
+</header>
+
+<div id="view-container">
+
+<!-- ══ VIEW: HOME ══ -->
+<div class="view active" id="view-home">
+  <div class="home-top">
+    <div>
+      <div class="home-title">Open-Source Robot Datasets</div>
+      <div class="home-sub">Select a dataset to load episodes and run through the Haptal Engine</div>
+    </div>
+    <div class="search-box">
+      <input type="text" id="search-input" placeholder="Search datasets…" />
+    </div>
+  </div>
+  <div id="ds-grid"></div>
+</div>
+
+<!-- ══ VIEW: DATASET ══ -->
+<div class="view" id="view-dataset">
+  <div id="ds-sidebar">
+    <div class="ds-sidebar-inner">
       <div>
-        <div class="brand-name">HAPTAL ENGINE</div>
-        <div class="brand-sub">Robot Vacuum Reviewer</div>
+        <div class="ds-big-name" id="ds-name">—</div>
+        <div class="ds-org-row" style="margin-top:5px">
+          <span class="ds-org" id="ds-org">—</span>
+          <span class="ds-year" id="ds-year">—</span>
+          <span class="ds-license-badge" id="ds-license">—</span>
+        </div>
+      </div>
+      <div class="ds-full-desc" id="ds-desc">—</div>
+      <div class="ds-stat-row">
+        <div class="ds-stat"><span class="ds-stat-k">Total episodes</span><span class="ds-stat-v" id="ds-n">—</span></div>
+        <div class="ds-stat"><span class="ds-stat-k">Loaded for demo</span><span class="ds-stat-v" id="ds-loaded">—</span></div>
+        <div class="ds-stat"><span class="ds-stat-k">Simulation rate</span><span class="ds-stat-v">50 Hz</span></div>
+        <div class="ds-stat"><span class="ds-stat-k">Tags</span><span class="ds-stat-v" id="ds-tags">—</span></div>
       </div>
     </div>
-    <div id="ep-pill-bar"></div>
-    <div class="hdr-right">
-      <span class="stat-chip sc-a" id="pill-a">— approved</span>
-      <span class="stat-chip sc-r" id="pill-r">— rejected</span>
-      <span class="stat-chip sc-f" id="pill-f">— flagged</span>
-      <span class="stat-chip sc-p" id="pill-p">— pending</span>
+  </div>
+  <div id="ep-list-panel">
+    <div class="ep-list-hdr">
+      <span id="ep-list-title">Episodes</span>
     </div>
-  </header>
+    <div id="ep-list"></div>
+  </div>
+</div>
 
-  <div id="cols">
+<!-- ══ VIEW: ENGINE ══ -->
+<div class="view" id="view-engine">
+  <div class="eng-run-hdr">
+    <div class="eng-run-label">Haptal Engine — Processing</div>
+    <div class="eng-run-ep">
+      <span id="eng-ep-name">—</span>
+      <span class="badge b-nominal" id="eng-ep-badge">—</span>
+    </div>
+    <div class="eng-run-sub" id="eng-ep-desc">—</div>
+  </div>
 
-    <!-- LEFT: Episode Input -->
-    <div id="input-panel">
+  <!-- 5 stage cards -->
+  <div class="stage-card" id="stage-0">
+    <div class="stage-hdr">
+      <div class="stage-num">1</div>
+      <div class="stage-name">Data Ingestion</div>
+      <div class="stage-status" id="stage-0-status"></div>
+    </div>
+    <div class="stage-desc">Loading episode frames and parsing trajectory data</div>
+    <div class="stage-bar-track"><div class="stage-bar-fill" id="stage-0-bar"></div></div>
+    <div class="stage-logs" id="stage-0-log"></div>
+  </div>
+
+  <div class="stage-card" id="stage-1">
+    <div class="stage-hdr">
+      <div class="stage-num">2</div>
+      <div class="stage-name">Trajectory Analysis</div>
+      <div class="stage-status" id="stage-1-status"></div>
+    </div>
+    <div class="stage-desc">Computing velocity profiles, path efficiency and coverage metrics</div>
+    <div class="stage-bar-track"><div class="stage-bar-fill" id="stage-1-bar"></div></div>
+    <div class="stage-logs" id="stage-1-log"></div>
+  </div>
+
+  <div class="stage-card" id="stage-2">
+    <div class="stage-hdr">
+      <div class="stage-num">3</div>
+      <div class="stage-name">Anomaly Detection</div>
+      <div class="stage-status" id="stage-2-status"></div>
+    </div>
+    <div class="stage-desc">Scanning for behavioral deviations and failure signatures</div>
+    <div class="stage-bar-track"><div class="stage-bar-fill" id="stage-2-bar"></div></div>
+    <div class="stage-logs" id="stage-2-log"></div>
+  </div>
+
+  <div class="stage-card" id="stage-3">
+    <div class="stage-hdr">
+      <div class="stage-num">4</div>
+      <div class="stage-name">Failure Classification</div>
+      <div class="stage-status" id="stage-3-status"></div>
+    </div>
+    <div class="stage-desc">Mapping behavioral signature to 8-class failure taxonomy</div>
+    <div class="stage-bar-track"><div class="stage-bar-fill" id="stage-3-bar"></div></div>
+    <div class="stage-logs" id="stage-3-log"></div>
+  </div>
+
+  <div class="stage-card" id="stage-4">
+    <div class="stage-hdr">
+      <div class="stage-num">5</div>
+      <div class="stage-name">Label Generation</div>
+      <div class="stage-status" id="stage-4-status"></div>
+    </div>
+    <div class="stage-desc">Producing RLHF training label and human review decision</div>
+    <div class="stage-bar-track"><div class="stage-bar-fill" id="stage-4-bar"></div></div>
+    <div class="stage-logs" id="stage-4-log"></div>
+  </div>
+
+  <!-- Output -->
+  <div id="eng-output">
+    <div class="out-label">Haptal Engine Output</div>
+    <div class="out-badge" id="out-badge">—</div>
+    <div class="out-notes" id="out-notes">—</div>
+    <button id="btn-open-viz">View in Visualizer &rarr;</button>
+  </div>
+</div>
+
+<!-- ══ VIEW: VISUALIZER ══ -->
+<div class="view" id="view-viz">
+  <div id="viz-cols">
+
+    <!-- Left -->
+    <div id="viz-left">
       <div class="panel-hdr">
-        <div class="phdr-dot" style="background:#4a7090"></div>
+        <div class="phdr-dot" style="background:#3a6080"></div>
         Episode Input
       </div>
-      <div id="input-scroll">
-
-        <!-- File card -->
-        <div class="file-card">
-          <div class="file-icon-row">
-            <div class="file-icon">&#128190;</div>
+      <div id="viz-left-scroll">
+        <div class="vl-card">
+          <div style="display:flex;align-items:center;gap:8px">
+            <div style="font-size:20px">💾</div>
             <div>
-              <div class="file-name" id="inp-id">ep_001.json</div>
-              <div class="file-meta" id="inp-steps">— timesteps · 50 Hz</div>
+              <div style="font-size:11px;font-weight:700;font-family:monospace" id="vl-id">—</div>
+              <div style="font-size:9px;color:var(--muted)" id="vl-steps">—</div>
             </div>
           </div>
-          <div class="input-kv">
-            <div class="kv-row">
-              <span class="kv-key">failure class</span>
-              <span class="kv-val" id="inp-class">—</span>
-            </div>
-            <div class="kv-row">
-              <span class="kv-key">failure onset</span>
-              <span class="kv-val" id="inp-fstep" style="color:var(--red)">—</span>
-            </div>
-            <div class="kv-row">
-              <span class="kv-key">waypoints</span>
-              <span class="kv-val" id="inp-nwp">—</span>
-            </div>
+          <div class="vl-kv">
+            <div class="vl-row"><span class="vl-k">failure class</span><span class="vl-v" id="vl-class">—</span></div>
+            <div class="vl-row"><span class="vl-k">failure onset</span><span class="vl-v" id="vl-fstep" style="color:var(--red)">—</span></div>
+            <div class="vl-row"><span class="vl-k">waypoints</span><span class="vl-v" id="vl-nwp">—</span></div>
           </div>
         </div>
-
-        <!-- Description -->
-        <div style="font-size:10px; color:var(--muted); line-height:1.6; padding:0 1px" id="inp-desc">—</div>
-
-        <!-- Flow arrow -->
-        <div class="flow-arrow">
-          <div class="flow-arrow-line"></div>
-          <div class="flow-arrow-head">&#9660;</div>
-          <div class="flow-arrow-label">Processing</div>
-        </div>
-
-        <!-- Haptal Engine badge -->
-        <div class="proc-card">
-          <div class="proc-icon">H</div>
-          <div>
-            <div class="proc-label">Haptal Engine</div>
-            <div class="proc-sub">Proprietary AI pipeline</div>
-          </div>
-        </div>
-
-        <!-- Flow arrow -->
-        <div class="flow-arrow">
-          <div class="flow-arrow-line"></div>
-          <div class="flow-arrow-head">&#9660;</div>
-          <div class="flow-arrow-label">Live Run</div>
-        </div>
-
-        <!-- Live status -->
+        <div style="font-size:10px;color:var(--muted);line-height:1.55;padding:0 1px" id="vl-desc">—</div>
+        <div class="flow-arrow"><div class="flow-line"></div><div class="flow-head">▼</div><div class="flow-lbl">Processing</div></div>
+        <div class="proc-card"><div class="proc-ico">H</div><div><div class="proc-lbl">Haptal Engine</div><div class="proc-sub">Proprietary AI pipeline</div></div></div>
+        <div class="flow-arrow"><div class="flow-line"></div><div class="flow-head">▼</div><div class="flow-lbl">Live Run</div></div>
         <div class="sensor-block">
-          <div class="sensor-title">Engine Status</div>
-          <div class="status-row" id="status-row">
-            <div class="status-dot running" id="status-dot"></div>
-            <span class="status-text" id="status-text" style="color:var(--green)">RUNNING</span>
-          </div>
-          <div class="sensor-row" style="margin-top:4px">
-            <span class="sensor-key">Step</span>
-            <span class="sensor-val" id="live-step" style="color:var(--teal)">—</span>
-          </div>
-          <div class="sensor-row">
-            <span class="sensor-key">Position</span>
-            <span class="sensor-val" id="live-pos" style="color:var(--text)">—</span>
-          </div>
-          <div class="sensor-row">
-            <span class="sensor-key">Speed</span>
-            <span class="sensor-val" id="live-vel" style="color:var(--green)">—</span>
-          </div>
+          <div class="sensor-ttl">Engine Status</div>
+          <div class="status-row"><div class="status-dot running" id="vl-dot"></div><span style="font-size:11px;font-weight:600" id="vl-status-txt" style="color:var(--green)">RUNNING</span></div>
+          <div class="sensor-row" style="margin-top:4px"><span class="sensor-k">Step</span><span class="sensor-v" id="vl-live-step" style="color:var(--teal)">—</span></div>
+          <div class="sensor-row"><span class="sensor-k">Position</span><span class="sensor-v" id="vl-live-pos">—</span></div>
+          <div class="sensor-row"><span class="sensor-k">Speed</span><span class="sensor-v" id="vl-live-vel" style="color:var(--green)">—</span></div>
         </div>
-
       </div>
     </div>
 
-    <!-- CENTER: Haptal Engine Run -->
-    <div id="engine-panel">
-      <div class="engine-hdr">
-        <div class="engine-title">
-          <span>&#9654;</span> HAPTAL ENGINE RUN
-        </div>
-        <span class="engine-ep-tag" id="eng-ep-tag">—</span>
-        <span class="engine-badge" id="eng-badge">—</span>
-        <div class="engine-spacer"></div>
-        <span class="engine-status" id="eng-status">—</span>
+    <!-- Center -->
+    <div id="viz-center">
+      <div class="eng-hdr">
+        <div class="eng-title">▶ HAPTAL ENGINE RUN</div>
+        <span class="eng-ep-tag" id="viz-ep-tag">—</span>
+        <span class="eng-badge" id="viz-ep-badge">—</span>
+        <div class="eng-spacer"></div>
+        <span class="eng-status" id="viz-status">—</span>
       </div>
-
-      <div id="viewer">
+      <div id="three-viewer">
         <div id="hud">
           <div><span class="hl">Step</span><span class="hv" id="hud-step">—</span></div>
           <div><span class="hl">Pos&nbsp;</span><span class="hv" id="hud-pos">—</span></div>
           <div><span class="hl">Spd&nbsp;</span><span class="hv" id="hud-vel">—</span></div>
-          <div id="hud-fail"></div>
-          <div id="hud-ok"></div>
+          <div id="hud-fail"></div><div id="hud-ok"></div>
         </div>
         <div id="fail-ring"></div>
       </div>
-
-      <div id="chart-wrap">
-        <canvas id="vel-chart"></canvas>
-      </div>
-
+      <div id="chart-wrap"><canvas id="vel-chart"></canvas></div>
       <div id="ctrl-bar">
         <button class="cbtn" id="btn-start">&#9198;</button>
         <button class="cbtn" id="btn-play">&#9654;</button>
@@ -476,24 +564,18 @@ header {
       </div>
     </div>
 
-    <!-- RIGHT: Output / Labels & Flags -->
-    <div id="label-panel">
+    <!-- Right -->
+    <div id="viz-right">
       <div class="panel-hdr">
         <div class="phdr-dot" style="background:var(--yellow)"></div>
         AI Labels &amp; Human Review
       </div>
-
-      <!-- Current AI decision -->
       <div id="ai-decision-card">
-        <div class="decision-label">Haptal Engine Output</div>
-        <div class="decision-badge d-pending" id="decision-badge">—</div>
-        <div class="decision-notes" id="decision-notes">Select an episode to view the AI label</div>
+        <div class="dec-lbl">Haptal Engine Output</div>
+        <div class="dec-badge d-pending" id="dec-badge">—</div>
+        <div class="dec-notes" id="dec-notes">—</div>
       </div>
-
-      <!-- All episodes queue -->
-      <div id="review-queue"></div>
-
-      <!-- Human review actions -->
+      <div id="ep-queue"></div>
       <div id="review-actions">
         <div class="ra-hdr">Human Review</div>
         <div id="rev-btns">
@@ -502,7 +584,7 @@ header {
           <button class="rev-btn flag"    id="btn-flag">&#9873; Flag</button>
         </div>
         <div id="flag-panel">
-          <div class="flag-banner">&#9873; Flag reason:</div>
+          <div class="flag-banner">&#9873; Reason:</div>
           <div id="flag-chips">
             <span class="flag-chip" data-reason="Stuck / Trapped">Stuck</span>
             <span class="flag-chip" data-reason="Missed Coverage">Coverage</span>
@@ -517,7 +599,6 @@ header {
           <button id="btn-submit" disabled>Submit</button>
         </div>
       </div>
-
       <div id="review-summary-bar">
         <div class="rsb-item"><div class="rsb-num" id="s-a" style="color:var(--green)">—</div><div class="rsb-lbl">approved</div></div>
         <div class="rsb-item"><div class="rsb-num" id="s-r" style="color:var(--red)">—</div><div class="rsb-lbl">rejected</div></div>
@@ -525,18 +606,330 @@ header {
         <div class="rsb-item"><div class="rsb-num" id="s-p" style="color:var(--muted)">—</div><div class="rsb-lbl">pending</div></div>
       </div>
     </div>
-
   </div>
-</div>
+</div><!-- view-viz -->
+
+</div><!-- view-container -->
+</div><!-- app -->
 
 <script type="module">
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
-const DT          = 0.02;
-const TRAIL_STEPS = 100;
-const MAX_SPEED   = 0.55;
-let episodeData   = null;
+// ── State ─────────────────────────────────────────────────────────────────────
+const S = {
+  view: 'home',
+  dataset: null,
+  episodeList: [],
+  episodeSummary: null,  // for engine view
+  episodeData: null,     // full trajectory data for viz
+  datasetsCache: null,
+};
+
+// ── Router ────────────────────────────────────────────────────────────────────
+function navigateTo(view, params = {}) {
+  Object.assign(S, params);
+  S.view = view;
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById('view-' + view).classList.add('active');
+  updateBreadcrumb();
+  if (view === 'home')    onEnterHome();
+  if (view === 'dataset') onEnterDataset();
+  if (view === 'engine')  onEnterEngine();
+  if (view === 'viz')     onEnterViz();
+}
+window.navigateTo = navigateTo;
+
+function updateBreadcrumb() {
+  const bc = document.getElementById('breadcrumb');
+  const parts = [{ label: 'Datasets', view: 'home' }];
+  if (S.dataset && S.view !== 'home') parts.push({ label: S.dataset.name, view: 'dataset' });
+  if (S.episodeSummary && (S.view === 'engine' || S.view === 'viz'))
+    parts.push({ label: S.episodeSummary.id, view: null });
+  if (S.view === 'engine') parts.push({ label: 'Haptal Engine', view: null });
+  if (S.view === 'viz')    parts.push({ label: 'Visualizer', view: null });
+
+  bc.innerHTML = parts.map((p, i) => {
+    const isCur = i === parts.length - 1;
+    const cls   = isCur ? 'bc-item cur' : 'bc-item';
+    const click = !isCur && p.view ? `onclick="navigateTo('${p.view}')"` : '';
+    const sep   = i > 0 ? '<span class="bc-sep">/</span>' : '';
+    return `${sep}<span class="${cls}" ${click}>${p.label}</span>`;
+  }).join('');
+}
+
+// ── VIEW: Home ────────────────────────────────────────────────────────────────
+async function onEnterHome() {
+  if (!S.datasetsCache) {
+    const r = await fetch('/api/datasets');
+    S.datasetsCache = await r.json();
+  }
+  renderDatasetGrid(S.datasetsCache);
+}
+
+function renderDatasetGrid(datasets) {
+  const grid = document.getElementById('ds-grid');
+  const q    = document.getElementById('search-input').value.toLowerCase();
+  const list = q ? datasets.filter(d =>
+    d.name.toLowerCase().includes(q) || d.org.toLowerCase().includes(q) ||
+    d.tags.some(t => t.includes(q)) || d.description.toLowerCase().includes(q)
+  ) : datasets;
+
+  grid.innerHTML = list.map(ds => `
+    <div class="ds-card" style="--card-color:${ds.color}" onclick="selectDataset('${ds.id}')">
+      <div class="card-header">
+        <div>
+          <div class="card-name">${ds.name}</div>
+          <div class="card-org">${ds.org} · ${ds.year}</div>
+        </div>
+        <span class="card-count">${ds.n_episodes.toLocaleString()} ep</span>
+      </div>
+      <div class="card-desc">${ds.description}</div>
+      <div class="card-tags">${ds.tags.map(t => `<span class="card-tag">${t}</span>`).join('')}</div>
+      <div class="card-footer">
+        <span class="card-license">${ds.license}</span>
+        <span class="card-arrow">→</span>
+      </div>
+    </div>
+  `).join('');
+}
+
+document.getElementById('search-input').addEventListener('input', () => {
+  if (S.datasetsCache) renderDatasetGrid(S.datasetsCache);
+});
+
+window.selectDataset = function(id) {
+  const ds = S.datasetsCache?.find(d => d.id === id);
+  if (!ds) return;
+  navigateTo('dataset', { dataset: ds });
+};
+
+// ── VIEW: Dataset ─────────────────────────────────────────────────────────────
+async function onEnterDataset() {
+  const ds = S.dataset;
+  if (!ds) return;
+
+  // Sidebar
+  document.getElementById('ds-sidebar').style.setProperty('--ds-color', ds.color);
+  document.getElementById('ds-name').textContent    = ds.name;
+  document.getElementById('ds-org').textContent     = ds.org;
+  document.getElementById('ds-year').textContent    = ds.year;
+  document.getElementById('ds-license').textContent = ds.license;
+  document.getElementById('ds-desc').textContent    = ds.description;
+  document.getElementById('ds-n').textContent       = ds.n_episodes.toLocaleString();
+  document.getElementById('ds-tags').textContent    = ds.tags.join(', ');
+
+  // Load episode list
+  document.getElementById('ep-list').innerHTML = '<div style="padding:12px;color:var(--muted);font-size:11px">Loading episodes…</div>';
+  const r    = await fetch(`/api/datasets/${ds.id}/episodes`);
+  const data = await r.json();
+  S.episodeList = data.episodes;
+  document.getElementById('ds-loaded').textContent = S.episodeList.length;
+  document.getElementById('ep-list-title').textContent = `Episodes (${S.episodeList.length} loaded for demo)`;
+  renderEpisodeList(S.episodeList);
+}
+
+function renderEpisodeList(episodes) {
+  const el = document.getElementById('ep-list');
+  el.innerHTML = episodes.map((ep, i) => {
+    const dotCls = `ep-rdot ep-rdot-${ep.review === 'pending' ? 'pending' : ep.review}`;
+    const failInfo = ep.failure_step >= 0 ? ` · fail@${ep.failure_step}` : '';
+    return `
+      <div class="ep-row">
+        <span class="ep-num">${String(i+1).padStart(2,'0')}</span>
+        <div class="ep-rdot ${ep.review === 'pending' ? 'ep-rdot-pending' : 'ep-rdot-'+ep.review}"></div>
+        <div style="flex:1;min-width:0">
+          <div class="ep-id">${ep.id}</div>
+          <div class="ep-meta">${ep.n_timesteps} steps${failInfo}</div>
+        </div>
+        <span class="badge b-${ep.failure_class}">${ep.failure_class.replace(/_/g,' ')}</span>
+        <button class="ep-run-btn" onclick="startEngine('${ep.id}')">Run ▶</button>
+      </div>`;
+  }).join('');
+}
+
+window.startEngine = async function(epId) {
+  const ep = S.episodeList.find(e => e.id === epId);
+  if (!ep) return;
+  navigateTo('engine', { episodeSummary: ep });
+};
+
+// ── VIEW: Engine ──────────────────────────────────────────────────────────────
+const STAGE_DURATIONS = [2200, 3000, 2600, 2000, 1600];
+let   engineAbort = false;
+
+function ingestLogs(ep, idx) {
+  const pool = [
+    `Reading episode file: ${ep.id}.json`,
+    `Parsing ${ep.n_timesteps} timesteps @ 50 Hz — ${(ep.n_timesteps*0.02).toFixed(1)}s`,
+    `State schema: [x, y, θ] × ${ep.n_timesteps}`,
+    `Extracting velocity signals: v_linear, v_angular`,
+    `Building trajectory tensor: (${ep.n_timesteps}, 3)`,
+    `Normalizing coordinates to world frame`,
+    `Indexing waypoints: ${4 + (idx%4)} checkpoints`,
+    `Checksum OK — episode hash verified`,
+  ];
+  return pool[idx % pool.length];
+}
+function trajectoryLogs(ep, idx) {
+  const cov = ep.failure_class==='nominal'?'96.4%':ep.failure_class==='missed_zone'?'61.2%':'79.1%';
+  const pool = [
+    `Computing path curvature profile…`,
+    `Coverage grid (0.2 m cells): ${cov} filled`,
+    `Waypoint deviation RMS: ${(0.10+idx*0.018).toFixed(3)} m`,
+    `Running Savitzky-Golay smoothing filter`,
+    `Angular velocity FFT: ${ep.n_timesteps} steps`,
+    `Smoothness score: ${ep.failure_class==='nominal'?'0.944':'0.631'}`,
+    `Path efficiency index: ${ep.failure_class==='nominal'?'0.937':'0.612'}`,
+    `Trajectory analysis complete`,
+  ];
+  return pool[idx % pool.length];
+}
+function anomalyLogs(ep, idx) {
+  const has = ep.failure_step >= 0;
+  const pool = has ? [
+    `Loading LSTM-AE anomaly model v3.1…`,
+    `Sliding window: size=32, stride=4`,
+    `Elevated reconstruction error near step ${Math.round(ep.failure_step*0.85)}`,
+    `IsolationForest scoring ${ep.n_timesteps} frames`,
+    `Anomaly spike at step ${ep.failure_step}: score=0.${87+idx}`,
+    `Anomaly confirmed — failure at step ${ep.failure_step}±4`,
+  ] : [
+    `Loading LSTM-AE anomaly model v3.1…`,
+    `Sliding window: size=32, stride=4`,
+    `Reconstruction error max: ${(0.016+idx*0.003).toFixed(3)} (within 2σ)`,
+    `IsolationForest: all frames nominal`,
+    `Angular velocity stable — no discontinuities`,
+    `Anomaly scan complete — episode nominal`,
+  ];
+  return pool[idx % pool.length];
+}
+function classificationLogs(ep, idx) {
+  const conf = ep.failure_class==='nominal'?'0.974':(0.88+idx*0.02).toFixed(3);
+  const pool = [
+    `Loading Haptal classifier v2.4 (ViT backbone)…`,
+    `Encoding 512-d episode embedding`,
+    `Softmax over 8 failure classes`,
+    `Top-1: ${ep.failure_class.replace(/_/g,' ')} (${conf})`,
+    `Calibration temperature T=1.42`,
+    `Classification complete — confidence: ${conf}`,
+  ];
+  return pool[idx % pool.length];
+}
+function labelLogs(ep, decision, idx) {
+  const pool = [
+    `Applying Haptal label policy v1.8…`,
+    `Checking confidence threshold (>85%)`,
+    `Evaluating human review criteria`,
+    `AI recommendation: ${decision.toUpperCase()}`,
+    decision==='flag'?`Flagged for mandatory human inspection`:`Label confirmed with ${decision==='approve'?'high':'low'} confidence`,
+    `Label bundle written to store`,
+  ];
+  return pool[idx % pool.length];
+}
+const LOG_GENERATORS = [ingestLogs, trajectoryLogs, anomalyLogs, classificationLogs, labelLogs];
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+async function onEnterEngine() {
+  engineAbort = false;
+  const ep = S.episodeSummary;
+  if (!ep) return;
+
+  // Fill header
+  document.getElementById('eng-ep-name').textContent = ep.id;
+  const badge = document.getElementById('eng-ep-badge');
+  badge.textContent = ep.failure_class.replace(/_/g,' ');
+  badge.className = `badge b-${ep.failure_class}`;
+  document.getElementById('eng-ep-desc').textContent = ep.description || '';
+
+  // Reset all stages
+  for (let i = 0; i < 5; i++) {
+    const card = document.getElementById(`stage-${i}`);
+    card.className = 'stage-card';
+    document.getElementById(`stage-${i}-bar`).style.width = '0%';
+    document.getElementById(`stage-${i}-bar`).style.transition = 'none';
+    document.getElementById(`stage-${i}-log`).innerHTML = '';
+    document.getElementById(`stage-${i}-status`).textContent = '';
+    document.getElementById(`stage-${i}-status`).style.color = '';
+  }
+  const outEl = document.getElementById('eng-output');
+  outEl.className = 'eng-output-hidden';
+  outEl.style.display = 'none';
+  document.getElementById('btn-open-viz').classList.remove('ready');
+
+  const decision = ep.failure_class === 'nominal' ? 'approve' :
+                   (ep.failure_class === 'missed_zone' || ep.failure_class === 'low_battery') ? 'reject' : 'flag';
+
+  // Run stages
+  for (let i = 0; i < 5; i++) {
+    if (engineAbort) return;
+    const dur  = STAGE_DURATIONS[i];
+    const card = document.getElementById(`stage-${i}`);
+    const bar  = document.getElementById(`stage-${i}-bar`);
+    const log  = document.getElementById(`stage-${i}-log`);
+    const sta  = document.getElementById(`stage-${i}-status`);
+
+    card.classList.add('running');
+    sta.textContent = '◌ running';
+    sta.style.color = 'var(--teal)';
+
+    // Animate bar
+    await sleep(20);
+    bar.style.transition = `width ${dur}ms linear`;
+    bar.style.width = '100%';
+
+    // Stream log lines
+    const nLines = 5;
+    const lineDelay = dur / (nLines + 1);
+    for (let j = 0; j < nLines; j++) {
+      if (engineAbort) return;
+      await sleep(lineDelay);
+      const gen = LOG_GENERATORS[i];
+      const msg = i === 4 ? gen(ep, decision, j) : gen(ep, j);
+      const ts  = new Date().toISOString().slice(11, 23);
+      const div = document.createElement('div');
+      div.className = 'log-line';
+      div.innerHTML = `<span class="log-ts">${ts}</span><span class="log-msg">${msg}</span>`;
+      log.appendChild(div);
+      while (log.children.length > 4) log.removeChild(log.firstChild);
+    }
+
+    await sleep(lineDelay);
+    card.classList.remove('running');
+    card.classList.add('done');
+    sta.textContent = '✓ done';
+    sta.style.color = 'var(--green)';
+  }
+
+  // Show output
+  const DEC_LABELS = { approve: '✓ APPROVE', reject: '✗ REJECT', flag: '⚑ FLAG FOR REVIEW' };
+  const DEC_CLS    = { approve: 'out-approve', reject: 'out-reject', flag: 'out-flag' };
+  const DEC_NOTES  = {
+    approve: 'Episode meets quality threshold. No anomalies detected. Approved as training data.',
+    reject:  'Coverage or completion below threshold. Episode rejected — re-run recommended.',
+    flag:    'Anomaly detected requiring human inspection before labeling decision.',
+  };
+  document.getElementById('out-badge').textContent = DEC_LABELS[decision];
+  document.getElementById('out-badge').className   = `out-badge ${DEC_CLS[decision]}`;
+  document.getElementById('out-notes').textContent = ep.description || DEC_NOTES[decision];
+  outEl.style.display = 'flex';
+  await sleep(50);
+  outEl.className = 'eng-output show';
+  document.getElementById('btn-open-viz').classList.add('ready');
+
+  // Store decision for viz
+  S._pendingDecision = decision;
+}
+
+document.getElementById('btn-open-viz').addEventListener('click', async () => {
+  if (!S.episodeSummary) return;
+  const r  = await fetch(`/api/episodes/${S.episodeSummary.id}`);
+  const ep = await r.json();
+  navigateTo('viz', { episodeData: ep });
+});
+
+// ── VIEW: Visualizer ──────────────────────────────────────────────────────────
 let currentStep   = 0;
 let isPlaying     = false;
 let playSpeed     = 1.0;
@@ -549,34 +942,32 @@ let sideBrushMesh  = null;
 let statusLedMat   = null;
 let robotGroup     = null;
 let wheelRotation  = 0;
+const DT = 0.02, TRAIL_STEPS = 100, MAX_SPEED = 0.55;
 
-// ── Three.js setup ─────────────────────────────────────────────────────────────
-const viewer   = document.getElementById('viewer');
+// Three.js scene (built once, reused)
+const viewer   = document.getElementById('three-viewer');
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.1;
-renderer.setClearColor(0x05080f);
+renderer.setClearColor(0x04070e);
 viewer.appendChild(renderer.domElement);
 
 const scene = new THREE.Scene();
-scene.fog   = new THREE.FogExp2(0x05080f, 0.028);
+scene.fog   = new THREE.FogExp2(0x04070e, 0.026);
 
 const camera = new THREE.PerspectiveCamera(45, 1, 0.05, 60);
-// 45-degree isometric-style view — shows robot depth, not just top-down
 camera.position.set(4, 5.5, 7);
 
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.target.set(0, 0.2, 0);
-controls.enableDamping = true;
-controls.dampingFactor = 0.06;
+controls.enableDamping = true; controls.dampingFactor = 0.06;
 controls.minDistance = 1.5; controls.maxDistance = 20;
 controls.maxPolarAngle = Math.PI / 2 - 0.02;
 controls.update();
 
-// Lighting
 scene.add(new THREE.AmbientLight(0x8090aa, 0.9));
 const sun = new THREE.DirectionalLight(0xfff0e0, 1.1);
 sun.position.set(4, 10, 6); sun.castShadow = true;
@@ -585,259 +976,190 @@ sun.shadow.camera.left = sun.shadow.camera.bottom = -8;
 sun.shadow.camera.right = sun.shadow.camera.top   =  8;
 scene.add(sun);
 const fill = new THREE.DirectionalLight(0x3a5888, 0.4);
-fill.position.set(-5, 4, -4);
-scene.add(fill);
-const backLight = new THREE.DirectionalLight(0x2a4060, 0.2);
-backLight.position.set(0, 2, -6);
-scene.add(backLight);
+fill.position.set(-5, 4, -4); scene.add(fill);
 
-// ── Room: floor + walls ───────────────────────────────────────────────────────
-const ROOM = 6.0;
-const floorMat = new THREE.MeshStandardMaterial({ color: 0x1a2e44, roughness: 0.9, metalness: 0.0 });
-const floor = new THREE.Mesh(new THREE.PlaneGeometry(ROOM * 2, ROOM * 2), floorMat);
-floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; scene.add(floor);
-
-// Subtle grid
-const grid = new THREE.GridHelper(ROOM * 2, ROOM * 4, 0x1e3550, 0x121e2e);
-grid.position.y = 0.001; scene.add(grid);
-
-// Walls
-const wallMat = new THREE.MeshStandardMaterial({ color: 0x0d1e2e, roughness: 0.95, side: THREE.FrontSide });
-const WH = 0.9;
-const wallDefs = [
-  { pos: [0, WH/2, -ROOM], rx: 0,           ry: 0,            w: ROOM*2, h: WH, d: 0.06 },
-  { pos: [0, WH/2,  ROOM], rx: 0,           ry: Math.PI,      w: ROOM*2, h: WH, d: 0.06 },
-  { pos: [-ROOM, WH/2, 0], rx: 0,           ry: Math.PI/2,    w: ROOM*2, h: WH, d: 0.06 },
-  { pos: [ ROOM, WH/2, 0], rx: 0,           ry: -Math.PI/2,   w: ROOM*2, h: WH, d: 0.06 },
-];
-wallDefs.forEach(w => {
-  const mesh = new THREE.Mesh(new THREE.BoxGeometry(w.w, w.h, w.d), wallMat);
-  mesh.position.set(...w.pos); mesh.rotation.y = w.ry; mesh.receiveShadow = true;
-  scene.add(mesh);
-});
-
-// Baseboard trim
-const baseboardMat = new THREE.MeshStandardMaterial({ color: 0x1a3050, roughness: 0.7, metalness: 0.1 });
+// Room
+const ROOM = 6;
+const floor = new THREE.Mesh(new THREE.PlaneGeometry(ROOM*2, ROOM*2),
+  new THREE.MeshStandardMaterial({ color: 0x18293c, roughness: 0.9 }));
+floor.rotation.x = -Math.PI/2; floor.receiveShadow = true; scene.add(floor);
+scene.add(new THREE.GridHelper(ROOM*2, ROOM*4, 0x1c3050, 0x10202e));
+const wallMat = new THREE.MeshStandardMaterial({ color: 0x0c1c2c, roughness: 0.95 });
 [
-  [0, 0.04, -ROOM], [0, 0.04, ROOM], [-ROOM, 0.04, 0], [ROOM, 0.04, 0]
-].forEach((pos, i) => {
-  const ry = i < 2 ? 0 : Math.PI/2;
-  const m = new THREE.Mesh(new THREE.BoxGeometry(ROOM*2, 0.08, 0.05), baseboardMat);
-  m.position.set(...pos); m.rotation.y = ry; scene.add(m);
+  [0, .45, -ROOM, 0], [0, .45, ROOM, Math.PI],
+  [-ROOM, .45, 0, Math.PI/2], [ROOM, .45, 0, -Math.PI/2],
+].forEach(([x,y,z,ry]) => {
+  const m = new THREE.Mesh(new THREE.BoxGeometry(ROOM*2, .9, .06), wallMat);
+  m.position.set(x,y,z); m.rotation.y = ry; m.receiveShadow = true; scene.add(m);
 });
 
 // Charging dock
 const dockGroup = new THREE.Group();
 dockGroup.position.set(0, 0, -ROOM + 0.3);
-const dockBase = new THREE.Mesh(
-  new THREE.BoxGeometry(0.28, 0.04, 0.18),
-  new THREE.MeshStandardMaterial({ color: 0x0a1a28, roughness: 0.4, metalness: 0.5 })
-);
-dockBase.position.y = 0.02; dockBase.castShadow = true; dockGroup.add(dockBase);
-const dockBack = new THREE.Mesh(
-  new THREE.BoxGeometry(0.28, 0.12, 0.04),
-  new THREE.MeshStandardMaterial({ color: 0x0e2034, roughness: 0.3, metalness: 0.6 })
-);
-dockBack.position.set(0, 0.06, -0.07); dockGroup.add(dockBack);
-const dockLed = new THREE.Mesh(
-  new THREE.BoxGeometry(0.08, 0.008, 0.006),
-  new THREE.MeshStandardMaterial({ color: 0x00cc66, emissive: 0x00aa44, emissiveIntensity: 1.5 })
-);
-dockLed.position.set(0, 0.115, -0.05); dockGroup.add(dockLed);
+const dockBase = new THREE.Mesh(new THREE.BoxGeometry(.28,.04,.18),
+  new THREE.MeshStandardMaterial({ color: 0x0a1a28, roughness: 0.4, metalness: 0.5 }));
+dockBase.position.y = .02; dockBase.castShadow = true; dockGroup.add(dockBase);
+const dockBack = new THREE.Mesh(new THREE.BoxGeometry(.28,.12,.04),
+  new THREE.MeshStandardMaterial({ color: 0x0d1e34, roughness: 0.3, metalness: 0.6 }));
+dockBack.position.set(0,.06,-.07); dockGroup.add(dockBack);
+const dockLed = new THREE.Mesh(new THREE.BoxGeometry(.08,.008,.006),
+  new THREE.MeshStandardMaterial({ color: 0x00cc66, emissive: 0x00aa44, emissiveIntensity: 1.5 }));
+dockLed.position.set(0,.115,-.05); dockGroup.add(dockLed);
 scene.add(dockGroup);
 
-// ── Trajectory geometry ───────────────────────────────────────────────────────
+// Trajectory geometry
 const plannedGeo  = new THREE.BufferGeometry();
 const plannedLine = new THREE.Line(plannedGeo,
-  new THREE.LineDashedMaterial({ color: 0x224488, dashSize: 0.12, gapSize: 0.08, transparent: true, opacity: 0.5 }));
+  new THREE.LineDashedMaterial({ color: 0x1e3a88, dashSize: .12, gapSize: .08, transparent: true, opacity: .5 }));
 scene.add(plannedLine);
-
 const trajGeo  = new THREE.BufferGeometry();
 const trajLine = new THREE.Line(trajGeo,
-  new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.35 }));
+  new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, opacity: .35 }));
 scene.add(trajLine);
-
 const trailGeo  = new THREE.BufferGeometry();
-const trailLine = new THREE.Line(trailGeo, new THREE.LineBasicMaterial({ vertexColors: true, linewidth: 2 }));
+const trailLine = new THREE.Line(trailGeo, new THREE.LineBasicMaterial({ vertexColors: true }));
 scene.add(trailLine);
 
 function speedColor(v) {
   const t = Math.min(1, v / MAX_SPEED);
-  if (t < 0.5) return [0.14 + t * 1.0, 0.75 - t * 0.2, 0.25 - t * 0.2];
-  const s = (t - 0.5) * 2;
-  return [0.64 + s * 0.36, 0.65 * (1-s) + 0.14, 0.15 * (1-s)];
+  return t < .5
+    ? [.14 + t * 1.0, .75 - t * .2, .25 - t * .2]
+    : [.64 + (t-.5)*2*.36, .65*(1-(t-.5)*2)+.14, .15*(1-(t-.5)*2)];
 }
 
-// ── Roomba-style robot vacuum (larger, more detailed) ─────────────────────────
-function buildRobotVacuum() {
+// Robot vacuum model
+function buildRobot() {
   const g = new THREE.Group();
-  const R = 0.26, H = 0.095, yOff = H / 2;
+  const R = .26, H = .095, yOff = H/2;
+  const bodyMat   = new THREE.MeshStandardMaterial({ color: 0x1a1a1e, roughness: .5, metalness: .3 });
+  const topMat    = new THREE.MeshStandardMaterial({ color: 0x242428, roughness: .35, metalness: .35 });
+  const bumperMat = new THREE.MeshStandardMaterial({ color: 0x0c0c0e, roughness: .85 });
+  const wheelMat  = new THREE.MeshStandardMaterial({ color: 0x080808, roughness: .95 });
+  const silverMat = new THREE.MeshStandardMaterial({ color: 0x7a7a90, roughness: .25, metalness: .8 });
+  const sensorMat = new THREE.MeshStandardMaterial({ color: 0x081424, roughness: .05, metalness: .95 });
+  const brushMat  = new THREE.MeshStandardMaterial({ color: 0x202010, roughness: .9 });
+  statusLedMat    = new THREE.MeshStandardMaterial({ color: 0x00ee55, emissive: 0x00aa33, emissiveIntensity: 1.8 });
 
-  const bodyMat    = new THREE.MeshStandardMaterial({ color: 0x1a1a1e, roughness: 0.5, metalness: 0.3 });
-  const topCapMat  = new THREE.MeshStandardMaterial({ color: 0x242428, roughness: 0.35, metalness: 0.35 });
-  const bumperMat  = new THREE.MeshStandardMaterial({ color: 0x0c0c0e, roughness: 0.85 });
-  const wheelMat   = new THREE.MeshStandardMaterial({ color: 0x080808, roughness: 0.95 });
-  const silverMat  = new THREE.MeshStandardMaterial({ color: 0x7a7a90, roughness: 0.25, metalness: 0.8 });
-  const sensorMat  = new THREE.MeshStandardMaterial({ color: 0x081424, roughness: 0.05, metalness: 0.95 });
-  const brushMat   = new THREE.MeshStandardMaterial({ color: 0x202010, roughness: 0.9 });
-  statusLedMat     = new THREE.MeshStandardMaterial({ color: 0x00ee55, emissive: 0x00aa33, emissiveIntensity: 1.8 });
-
-  // Main body disc
-  const body = new THREE.Mesh(new THREE.CylinderGeometry(R, R * 0.99, H, 64), bodyMat);
+  const body = new THREE.Mesh(new THREE.CylinderGeometry(R, R*.99, H, 64), bodyMat);
   body.position.y = yOff; body.castShadow = true; g.add(body);
 
-  // Top cap — slightly inset
-  const topCap = new THREE.Mesh(new THREE.CylinderGeometry(R - 0.005, R - 0.005, 0.005, 64), topCapMat);
-  topCap.position.y = H + 0.0025; g.add(topCap);
+  const topCap = new THREE.Mesh(new THREE.CylinderGeometry(R-.005, R-.005, .005, 64), topMat);
+  topCap.position.y = H+.0025; g.add(topCap);
 
-  // Outer bumper ring — prominent
-  const bumper = new THREE.Mesh(new THREE.TorusGeometry(R + 0.005, 0.014, 10, 72), bumperMat);
-  bumper.rotation.x = Math.PI / 2; bumper.position.y = yOff; bumper.castShadow = true; g.add(bumper);
+  const bumper = new THREE.Mesh(new THREE.TorusGeometry(R+.005, .014, 10, 72), bumperMat);
+  bumper.rotation.x = Math.PI/2; bumper.position.y = yOff; bumper.castShadow = true; g.add(bumper);
 
-  // Silver accent trim
-  const trim = new THREE.Mesh(new THREE.TorusGeometry(R - 0.018, 0.006, 8, 72), silverMat);
-  trim.rotation.x = Math.PI / 2; trim.position.y = H + 0.003; g.add(trim);
+  const trim = new THREE.Mesh(new THREE.TorusGeometry(R-.018, .006, 8, 72), silverMat);
+  trim.rotation.x = Math.PI/2; trim.position.y = H+.003; g.add(trim);
 
-  // Status LED ring (glowing, green=ok / red=failure)
-  const ledRing = new THREE.Mesh(new THREE.TorusGeometry(0.07, 0.010, 8, 52), statusLedMat);
-  ledRing.rotation.x = Math.PI / 2; ledRing.position.y = H + 0.008; g.add(ledRing);
+  const ledRing = new THREE.Mesh(new THREE.TorusGeometry(.07, .010, 8, 52), statusLedMat);
+  ledRing.rotation.x = Math.PI/2; ledRing.position.y = H+.008; g.add(ledRing);
 
-  // Center button cluster
-  const btnBase = new THREE.Mesh(new THREE.CylinderGeometry(0.038, 0.038, 0.008, 32), topCapMat);
-  btnBase.position.y = H + 0.008; g.add(btnBase);
-  const btnInner = new THREE.Mesh(new THREE.CylinderGeometry(0.024, 0.024, 0.003, 32), silverMat);
-  btnInner.position.y = H + 0.014; g.add(btnInner);
-  const btnDot = new THREE.Mesh(new THREE.CylinderGeometry(0.007, 0.007, 0.003, 16),
-    new THREE.MeshStandardMaterial({ color: 0x3a3a3a, roughness: 0.4 }));
-  btnDot.position.y = H + 0.017; g.add(btnDot);
+  const btnBase = new THREE.Mesh(new THREE.CylinderGeometry(.038, .038, .008, 32), topMat);
+  btnBase.position.y = H+.008; g.add(btnBase);
+  const btnInner = new THREE.Mesh(new THREE.CylinderGeometry(.024, .024, .003, 32), silverMat);
+  btnInner.position.y = H+.014; g.add(btnInner);
 
-  // Camera / sensor tower (front-facing bump)
-  const camTower = new THREE.Mesh(new THREE.BoxGeometry(0.018, 0.028, 0.042), sensorMat);
-  camTower.position.set(R - 0.005, yOff + 0.018, 0); g.add(camTower);
+  const camTower = new THREE.Mesh(new THREE.BoxGeometry(.018, .028, .042), sensorMat);
+  camTower.position.set(R-.005, yOff+.018, 0); g.add(camTower);
 
-  // IR cliff sensors (front)
-  for (const z of [-0.06, 0.06]) {
-    const ir = new THREE.Mesh(new THREE.SphereGeometry(0.007, 10, 10),
-      new THREE.MeshStandardMaterial({ color: 0x1a0000, emissive: 0x440000, emissiveIntensity: 0.8 }));
-    ir.position.set(R + 0.003, yOff * 0.5, z); g.add(ir);
+  for (const z of [-.06, .06]) {
+    const ir = new THREE.Mesh(new THREE.SphereGeometry(.007, 10, 10),
+      new THREE.MeshStandardMaterial({ color: 0x1a0000, emissive: 0x440000, emissiveIntensity: .8 }));
+    ir.position.set(R+.003, yOff*.5, z); g.add(ir);
   }
 
-  // Forward direction stripe (blue, visible from above and side)
-  const stripe = new THREE.Mesh(
-    new THREE.BoxGeometry(R * 0.5, 0.005, 0.016),
-    new THREE.MeshStandardMaterial({ color: 0x2a8fdd, emissive: 0x0a3060, emissiveIntensity: 1.2 })
-  );
-  stripe.position.set(R * 0.52, H + 0.003, 0); g.add(stripe);
+  const stripe = new THREE.Mesh(new THREE.BoxGeometry(R*.5, .005, .016),
+    new THREE.MeshStandardMaterial({ color: 0x2a8fdd, emissive: 0x0a3060, emissiveIntensity: 1.2 }));
+  stripe.position.set(R*.52, H+.003, 0); g.add(stripe);
 
-  // Drive wheels (large, rubber textured look)
-  const wheelGeo = new THREE.CylinderGeometry(0.044, 0.044, 0.026, 28);
-  wheelGeo.rotateX(Math.PI / 2);
-  leftWheelMesh  = new THREE.Mesh(wheelGeo, wheelMat);
-  rightWheelMesh = new THREE.Mesh(wheelGeo, wheelMat);
-  leftWheelMesh.position.set(0, 0.028, R * 0.82);
-  rightWheelMesh.position.set(0, 0.028, -R * 0.82);
+  const wGeo = new THREE.CylinderGeometry(.044, .044, .026, 28);
+  wGeo.rotateX(Math.PI/2);
+  leftWheelMesh  = new THREE.Mesh(wGeo, wheelMat);
+  rightWheelMesh = new THREE.Mesh(wGeo, wheelMat);
+  leftWheelMesh.position.set(0, .028, R*.82);
+  rightWheelMesh.position.set(0, .028, -R*.82);
   leftWheelMesh.castShadow = rightWheelMesh.castShadow = true;
   g.add(leftWheelMesh); g.add(rightWheelMesh);
 
-  // Wheel arch covers
   for (const zs of [1, -1]) {
-    const arch = new THREE.Mesh(new THREE.CylinderGeometry(0.046, 0.046, 0.03, 28),
+    const arch = new THREE.Mesh(new THREE.CylinderGeometry(.046, .046, .03, 28),
       new THREE.MeshStandardMaterial({ color: 0x0a0a0c, roughness: 1.0 }));
-    arch.rotation.x = Math.PI / 2;
-    arch.position.set(0, 0.028, zs * R * 0.82); g.add(arch);
+    arch.rotation.x = Math.PI/2;
+    arch.position.set(0, .028, zs*R*.82); g.add(arch);
   }
 
-  // Front castor wheel
-  const castor = new THREE.Mesh(new THREE.SphereGeometry(0.020, 14, 14), wheelMat);
-  castor.position.set(R * 0.72, 0.020, 0); g.add(castor);
+  const castor = new THREE.Mesh(new THREE.SphereGeometry(.020, 14, 14), wheelMat);
+  castor.position.set(R*.72, .020, 0); g.add(castor);
 
-  // Side brush (spinning — left front)
   sideBrushMesh = new THREE.Group();
-  sideBrushMesh.position.set(R * 0.54, 0.006, R * 0.62);
-  const brushHub = new THREE.Mesh(new THREE.CylinderGeometry(0.013, 0.013, 0.010, 12), bumperMat);
-  sideBrushMesh.add(brushHub);
+  sideBrushMesh.position.set(R*.54, .006, R*.62);
+  sideBrushMesh.add(new THREE.Mesh(new THREE.CylinderGeometry(.013, .013, .010, 12), bumperMat));
   for (let i = 0; i < 3; i++) {
-    const ang = (i / 3) * Math.PI * 2;
-    const arm = new THREE.Mesh(new THREE.BoxGeometry(0.050, 0.005, 0.007), brushMat);
-    arm.position.set(Math.cos(ang) * 0.025, 0, Math.sin(ang) * 0.025);
+    const ang = (i/3)*Math.PI*2;
+    const arm = new THREE.Mesh(new THREE.BoxGeometry(.050, .005, .007), brushMat);
+    arm.position.set(Math.cos(ang)*.025, 0, Math.sin(ang)*.025);
     arm.rotation.y = ang; sideBrushMesh.add(arm);
   }
   g.add(sideBrushMesh);
 
-  // Back exhaust vents
   for (let i = -1; i <= 1; i++) {
-    const vent = new THREE.Mesh(new THREE.BoxGeometry(0.008, H * 0.3, 0.012), bumperMat);
-    vent.position.set(-R * 0.86, yOff, i * 0.028); g.add(vent);
+    const vent = new THREE.Mesh(new THREE.BoxGeometry(.008, H*.3, .012), bumperMat);
+    vent.position.set(-R*.86, yOff, i*.028); g.add(vent);
   }
-
-  // Dirt detect LED (orange, front-center top)
-  const dirtLed = new THREE.Mesh(new THREE.CylinderGeometry(0.005, 0.005, 0.003, 10),
-    new THREE.MeshStandardMaterial({ color: 0xff8800, emissive: 0xff5500, emissiveIntensity: 0.8 }));
-  dirtLed.position.set(0.08, H + 0.008, 0.07); g.add(dirtLed);
-
   return g;
 }
 
 function spawnRobot() {
   if (robotGroup) scene.remove(robotGroup);
-  robotGroup = buildRobotVacuum();
-  scene.add(robotGroup);
+  robotGroup = buildRobot(); scene.add(robotGroup);
 }
 spawnRobot();
 
-// ── Trajectory builders ───────────────────────────────────────────────────────
-function buildTrajectoryGeometry() {
-  if (!episodeData) return;
+function buildTrajectoryGeo() {
+  if (!S.episodeData) return;
   const pos = [], col = [];
-  for (let i = 0; i < episodeData.n_timesteps; i++) {
-    const [x, y] = episodeData.states[i];
-    pos.push(x, 0.010, y);
-    const [r, g, b] = speedColor(episodeData.v_linear[i]);
-    col.push(r, g, b);
+  for (let i = 0; i < S.episodeData.n_timesteps; i++) {
+    const [x, y] = S.episodeData.states[i]; pos.push(x, .010, y);
+    const [r, g, b] = speedColor(S.episodeData.v_linear[i]); col.push(r, g, b);
   }
   trajGeo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
   trajGeo.setAttribute('color',    new THREE.Float32BufferAttribute(col, 3));
-  if (episodeData.planned_path?.length) {
-    plannedGeo.setFromPoints(episodeData.planned_path.map(([x, y]) => new THREE.Vector3(x, 0.010, y)));
+  if (S.episodeData.planned_path?.length) {
+    plannedGeo.setFromPoints(S.episodeData.planned_path.map(([x,y]) => new THREE.Vector3(x,.010,y)));
     plannedLine.computeLineDistances();
   }
 }
 
-// ── Scene update per step ─────────────────────────────────────────────────────
 function updateScene(step, isFailure) {
-  if (!episodeData || !robotGroup) return;
-  const [x, y, theta] = episodeData.states[step];
+  if (!S.episodeData || !robotGroup) return;
+  const [x, y, theta] = S.episodeData.states[step];
   robotGroup.position.set(x, 0, y);
   robotGroup.rotation.y = -theta;
-
-  const spd = episodeData.v_linear[step];
-  wheelRotation += spd * DT / 0.044;
+  const spd = S.episodeData.v_linear[step];
+  wheelRotation += spd * DT / .044;
   if (leftWheelMesh)  leftWheelMesh.rotation.z  = wheelRotation;
   if (rightWheelMesh) rightWheelMesh.rotation.z = wheelRotation;
-  if (sideBrushMesh)  sideBrushMesh.rotation.y -= 0.07;
+  if (sideBrushMesh)  sideBrushMesh.rotation.y -= .07;
   if (statusLedMat) {
     statusLedMat.color.setHex(isFailure ? 0xff2020 : 0x00ee55);
     statusLedMat.emissive.setHex(isFailure ? 0x550000 : 0x00aa33);
     statusLedMat.emissiveIntensity = isFailure ? 2.2 : 1.8;
   }
-
-  // Animated trail
   const start = Math.max(0, step - TRAIL_STEPS);
   const tPos = [], tCol = [];
   for (let i = start; i <= step; i++) {
-    const [tx, ty] = episodeData.states[i];
-    tPos.push(tx, 0.016, ty);
+    const [tx, ty] = S.episodeData.states[i]; tPos.push(tx, .016, ty);
     const fade = (i - start) / TRAIL_STEPS;
-    const [r, g, b] = speedColor(episodeData.v_linear[i]);
-    tCol.push(r * fade, g * fade, b * fade);
+    const [r, g, b] = speedColor(S.episodeData.v_linear[i]);
+    tCol.push(r*fade, g*fade, b*fade);
   }
   trailGeo.setAttribute('position', new THREE.Float32BufferAttribute(tPos, 3));
   trailGeo.setAttribute('color',    new THREE.Float32BufferAttribute(tCol, 3));
   trailGeo.attributes.position.needsUpdate = true;
-  trailGeo.attributes.color.needsUpdate = true;
+  trailGeo.attributes.color.needsUpdate    = true;
 }
 
-// ── Resize ────────────────────────────────────────────────────────────────────
 function resize() {
   const w = viewer.clientWidth, h = viewer.clientHeight;
   if (!w || !h) return;
@@ -846,50 +1168,46 @@ function resize() {
   camera.updateProjectionMatrix();
 }
 new ResizeObserver(resize).observe(viewer);
-resize();
 
-// ── Animate ───────────────────────────────────────────────────────────────────
 function setPlaying(v) {
   isPlaying = v;
   document.getElementById('btn-play').innerHTML = v ? '&#9646;&#9646;' : '&#9654;';
   if (!v) lastTS = null;
 }
 
-function animate(ts) {
-  requestAnimationFrame(animate);
+(function animLoop(ts) {
+  requestAnimationFrame(animLoop);
   controls.update();
-  if (isPlaying && episodeData) {
+  if (isPlaying && S.episodeData) {
     if (!lastTS) lastTS = ts;
     accTime += (ts - lastTS) / 1000 * playSpeed;
     lastTS = ts;
     const steps = Math.floor(accTime / DT);
     if (steps > 0) {
       accTime -= steps * DT;
-      currentStep = Math.min(currentStep + steps, episodeData.n_timesteps - 1);
-      if (currentStep >= episodeData.n_timesteps - 1) setPlaying(false);
-      syncUI();
+      currentStep = Math.min(currentStep + steps, S.episodeData.n_timesteps - 1);
+      if (currentStep >= S.episodeData.n_timesteps - 1) setPlaying(false);
+      syncVizUI();
     }
   } else { lastTS = null; }
-  const isFailure = episodeData && episodeData.failure_step >= 0 && currentStep >= episodeData.failure_step;
-  updateScene(currentStep, isFailure);
+  const isF = S.episodeData && S.episodeData.failure_step >= 0 && currentStep >= S.episodeData.failure_step;
+  updateScene(currentStep, isF);
   renderer.render(scene, camera);
-}
-requestAnimationFrame(animate);
+})();
 
-// ── Velocity chart ────────────────────────────────────────────────────────────
+// Velocity chart
 const stepPlugin = {
   id: 'stepLine',
   afterDraw(chart) {
-    if (!episodeData) return;
+    if (!S.episodeData) return;
     const { ctx, scales: { x, y } } = chart;
-    if (episodeData.failure_step >= 0) {
-      const px = x.getPixelForValue(episodeData.failure_step);
-      ctx.save(); ctx.strokeStyle = 'rgba(217,64,64,.65)'; ctx.lineWidth = 1;
-      ctx.setLineDash([4, 4]);
-      ctx.beginPath(); ctx.moveTo(px, y.top); ctx.lineTo(px, y.bottom); ctx.stroke(); ctx.restore();
+    if (S.episodeData.failure_step >= 0) {
+      const px = x.getPixelForValue(S.episodeData.failure_step);
+      ctx.save(); ctx.strokeStyle = 'rgba(204,58,58,.6)'; ctx.lineWidth = 1;
+      ctx.setLineDash([4,4]); ctx.beginPath(); ctx.moveTo(px, y.top); ctx.lineTo(px, y.bottom); ctx.stroke(); ctx.restore();
     }
     const cp = x.getPixelForValue(currentStep);
-    ctx.save(); ctx.strokeStyle = 'rgba(180,210,240,.85)'; ctx.lineWidth = 1.5;
+    ctx.save(); ctx.strokeStyle = 'rgba(170,200,230,.8)'; ctx.lineWidth = 1.5;
     ctx.beginPath(); ctx.moveTo(cp, y.top); ctx.lineTo(cp, y.bottom); ctx.stroke(); ctx.restore();
   }
 };
@@ -899,280 +1217,248 @@ const velChart = new Chart(document.getElementById('vel-chart').getContext('2d')
   type: 'line', data: { labels: [], datasets: [] },
   options: {
     animation: false, responsive: true, maintainAspectRatio: false,
-    plugins: {
-      legend: { labels: { color: '#4a6880', boxWidth: 8, font: { size: 9 } } },
-      tooltip: { enabled: false }
-    },
+    plugins: { legend: { labels: { color: '#3e6080', boxWidth: 8, font: { size: 9 } } }, tooltip: { enabled: false } },
     scales: {
-      x: { ticks: { color: '#2e4860', maxTicksLimit: 7, font: { size: 8 } }, grid: { color: '#0a1828' },
-           title: { display: true, text: 'Step', color: '#2e4860', font: { size: 8 } } },
-      y: { ticks: { color: '#2e4860', font: { size: 8 } }, grid: { color: '#0a1828' } }
+      x: { ticks: { color: '#2a4060', maxTicksLimit: 7, font: { size: 8 } }, grid: { color: '#091828' },
+           title: { display: true, text: 'Step', color: '#2a4060', font: { size: 8 } } },
+      y: { ticks: { color: '#2a4060', font: { size: 8 } }, grid: { color: '#091828' } }
     }
   }
 });
 
 function loadChart() {
-  if (!episodeData) return;
-  const n = episodeData.n_timesteps;
-  velChart.data.labels = Array.from({ length: n }, (_, i) => i);
+  if (!S.episodeData) return;
+  velChart.data.labels   = Array.from({ length: S.episodeData.n_timesteps }, (_, i) => i);
   velChart.data.datasets = [
-    { label: 'v_linear',  data: episodeData.v_linear,  borderColor: '#26bfb0', backgroundColor: 'transparent', borderWidth: 1.5, pointRadius: 0, tension: 0.3 },
-    { label: 'v_angular', data: episodeData.v_angular, borderColor: '#8a68d0', backgroundColor: 'transparent', borderWidth: 1.2, pointRadius: 0, tension: 0.3 },
+    { label: 'v_linear',  data: S.episodeData.v_linear,  borderColor: '#22b0a0', backgroundColor: 'transparent', borderWidth: 1.5, pointRadius: 0, tension: .3 },
+    { label: 'v_angular', data: S.episodeData.v_angular, borderColor: '#7a5cc0', backgroundColor: 'transparent', borderWidth: 1.2, pointRadius: 0, tension: .3 },
   ];
   velChart.update('none');
 }
 
-// ── Class colors ──────────────────────────────────────────────────────────────
 const FC_COLORS = {
-  nominal:'#1fbe78', stuck_corner:'#b080ff', missed_zone:'#70b0ff',
-  cliff_error:'#ff7070', low_battery:'#8899aa', wheel_slip:'#e0a830',
-  tangled:'#ff9040', return_fail:'#aa60ff', unknown:'#4a6880',
+  nominal:'#18b870',stuck_corner:'#b080ff',missed_zone:'#60a0ff',
+  cliff_error:'#ff6060',low_battery:'#8899aa',wheel_slip:'#c89c28',
+  tangled:'#ff8830',return_fail:'#9a50ff',unknown:'#3e6080',
 };
+const DEC_LABELS = { approve:'✓ APPROVE', reject:'✗ REJECT', flag:'⚑ FLAGGED', pending:'PENDING' };
+const DEC_CLS    = { approve:'d-approve',  reject:'d-reject',  flag:'d-flag',    pending:'d-pending' };
 
-// ── Sync UI every step ────────────────────────────────────────────────────────
-function syncUI() {
-  if (!episodeData) return;
-  const isFailure = episodeData.failure_step >= 0 && currentStep >= episodeData.failure_step;
-  const [x, y, theta] = episodeData.states[currentStep];
-  const vl = episodeData.v_linear[currentStep];
+function syncVizUI() {
+  if (!S.episodeData) return;
+  const isF = S.episodeData.failure_step >= 0 && currentStep >= S.episodeData.failure_step;
+  const [x, y, theta] = S.episodeData.states[currentStep];
+  const vl = S.episodeData.v_linear[currentStep];
 
-  // Scrubber & step display
-  document.getElementById('scrubber').value  = currentStep;
-  document.getElementById('step-disp').textContent = `${currentStep} / ${episodeData.n_timesteps - 1}`;
+  document.getElementById('scrubber').value    = currentStep;
+  document.getElementById('step-disp').textContent = `${currentStep} / ${S.episodeData.n_timesteps - 1}`;
+  document.getElementById('hud-step').textContent  = currentStep;
+  document.getElementById('hud-pos').textContent   = `(${x.toFixed(2)}, ${y.toFixed(2)})`;
+  document.getElementById('hud-vel').textContent   = `${vl.toFixed(2)} m/s`;
+  const hfail = document.getElementById('hud-fail'), hok = document.getElementById('hud-ok');
+  hfail.style.display = isF ? 'block' : 'none';
+  hok.style.display   = !isF && S.episodeData.failure_class === 'nominal' ? 'block' : 'none';
+  if (isF) hfail.textContent = `\u25cf ${S.episodeData.failure_class.replace(/_/g,' ').toUpperCase()}`;
+  document.getElementById('fail-ring').className = isF ? 'on' : '';
+  document.getElementById('viz-status').textContent = isF ? '⚠ FAILURE' : '● RUNNING';
+  document.getElementById('viz-status').style.color = isF ? 'var(--red)' : 'var(--green)';
 
-  // Center HUD
-  document.getElementById('hud-step').textContent = currentStep;
-  document.getElementById('hud-pos').textContent  = `(${x.toFixed(2)}, ${y.toFixed(2)})`;
-  document.getElementById('hud-vel').textContent  = `${vl.toFixed(2)} m/s`;
-  const hfail = document.getElementById('hud-fail');
-  const hok   = document.getElementById('hud-ok');
-  hfail.style.display = isFailure ? 'block' : 'none';
-  hok.style.display   = (!isFailure && episodeData.failure_class === 'nominal') ? 'block' : 'none';
-  if (isFailure) hfail.textContent = `\u25cf ${episodeData.failure_class.replace(/_/g,' ').toUpperCase()}`;
-  document.getElementById('fail-ring').className = isFailure ? 'on' : '';
-  document.getElementById('eng-status').textContent  = isFailure ? '⚠ FAILURE' : '● RUNNING';
-  document.getElementById('eng-status').style.color  = isFailure ? 'var(--red)' : 'var(--green)';
-
-  // Left panel live status
-  document.getElementById('live-step').textContent = `${currentStep} / ${episodeData.n_timesteps - 1}`;
-  document.getElementById('live-pos').textContent  = `(${x.toFixed(2)}, ${y.toFixed(2)})`;
-  document.getElementById('live-vel').textContent  = `${vl.toFixed(2)} m/s`;
-  document.getElementById('live-vel').style.color  = isFailure ? 'var(--red)' : 'var(--green)';
-  const dot  = document.getElementById('status-dot');
-  const stxt = document.getElementById('status-text');
-  dot.className = `status-dot ${isFailure ? 'failure' : 'running'}`;
-  stxt.textContent  = isFailure ? 'FAILURE DETECTED' : 'RUNNING';
-  stxt.style.color  = isFailure ? 'var(--red)' : 'var(--green)';
+  // Left panel live
+  document.getElementById('vl-live-step').textContent = `${currentStep} / ${S.episodeData.n_timesteps - 1}`;
+  document.getElementById('vl-live-pos').textContent  = `(${x.toFixed(2)}, ${y.toFixed(2)})`;
+  document.getElementById('vl-live-vel').textContent  = `${vl.toFixed(2)} m/s`;
+  document.getElementById('vl-live-vel').style.color  = isF ? 'var(--red)' : 'var(--green)';
+  const dot = document.getElementById('vl-dot');
+  const stxt = document.getElementById('vl-status-txt');
+  dot.className = `status-dot ${isF ? 'failure' : 'running'}`;
+  stxt.textContent = isF ? 'FAILURE DETECTED' : 'RUNNING';
+  stxt.style.color = isF ? 'var(--red)' : 'var(--green)';
 
   velChart.update('none');
 }
 
-// ── Load episode ──────────────────────────────────────────────────────────────
-const DECISION_LABELS = { approve: '✓ APPROVE', reject: '✗ REJECT', flag: '⚑ FLAGGED', pending: 'PENDING' };
-const DECISION_CLASSES = { approve: 'd-approve', reject: 'd-reject', flag: 'd-flag', pending: 'd-pending' };
+async function onEnterViz() {
+  const ep = S.episodeData;
+  if (!ep) return;
 
-async function loadEpisode(id) {
-  const res = await fetch(`/api/episodes/${id}`);
-  if (!res.ok) return;
-  episodeData = await res.json();
   currentStep = 0; accTime = 0;
-  setPlaying(false);
-  setDecision(null);
-  setFlagPanelVisible(false);
+  setPlaying(false); setDecision(null); setFlagPanelVisible(false);
   document.querySelectorAll('.flag-chip').forEach(c => c.classList.remove('active'));
-  document.getElementById('scrubber').max = episodeData.n_timesteps - 1;
+  document.getElementById('scrubber').max = ep.n_timesteps - 1;
+  resize();
 
-  // Left panel — static episode info
-  document.getElementById('inp-id').textContent    = episodeData.id + '.json';
-  document.getElementById('inp-steps').textContent = `${episodeData.n_timesteps} timesteps · 50 Hz`;
-  const fcEl = document.getElementById('inp-class');
-  fcEl.textContent  = episodeData.failure_class.replace(/_/g, ' ');
-  fcEl.style.color  = FC_COLORS[episodeData.failure_class] || 'var(--text)';
-  document.getElementById('inp-fstep').textContent = episodeData.failure_step >= 0 ? `step ${episodeData.failure_step}` : 'none';
-  document.getElementById('inp-nwp').textContent   = episodeData.waypoints?.length ?? '—';
-  document.getElementById('inp-desc').textContent  = episodeData.description || '—';
+  // Center header
+  document.getElementById('viz-ep-tag').textContent = ep.id;
+  const badge = document.getElementById('viz-ep-badge');
+  badge.textContent = ep.failure_class.replace(/_/g,' ');
+  const fc = FC_COLORS[ep.failure_class] || '#3e6080';
+  badge.style.cssText = `background:${fc}18;color:${fc};border:1px solid ${fc}40;`;
 
-  // Center engine header
-  document.getElementById('eng-ep-tag').textContent = episodeData.id;
-  const badge = document.getElementById('eng-badge');
-  badge.textContent = episodeData.failure_class.replace(/_/g, ' ');
-  const fc = FC_COLORS[episodeData.failure_class] || '#4a6880';
-  badge.style.cssText = `background:${fc}18; color:${fc}; border:1px solid ${fc}40;`;
+  // Left panel static
+  document.getElementById('vl-id').textContent    = ep.id + '.json';
+  document.getElementById('vl-steps').textContent = `${ep.n_timesteps} timesteps · 50 Hz`;
+  const fcEl = document.getElementById('vl-class');
+  fcEl.textContent = ep.failure_class.replace(/_/g,' ');
+  fcEl.style.color = fc;
+  document.getElementById('vl-fstep').textContent = ep.failure_step >= 0 ? `step ${ep.failure_step}` : 'none';
+  document.getElementById('vl-nwp').textContent   = ep.waypoints?.length ?? '—';
+  document.getElementById('vl-desc').textContent  = ep.description || '—';
 
-  // Right panel — AI decision card
-  const prev = episodeData.prev_review;
-  const decisionBadge = document.getElementById('decision-badge');
-  const decisionNotes = document.getElementById('decision-notes');
+  // Right panel AI decision
+  const prev = ep.prev_review || (S._pendingDecision ? { decision: S._pendingDecision, notes: ep.description } : null);
+  const decBadge = document.getElementById('dec-badge');
+  const decNotes = document.getElementById('dec-notes');
   if (prev) {
     const d = prev.decision;
-    decisionBadge.textContent = DECISION_LABELS[d] || d.toUpperCase();
-    decisionBadge.className   = `decision-badge ${DECISION_CLASSES[d] || 'd-pending'}`;
-    decisionNotes.textContent = prev.notes || episodeData.description || '';
+    decBadge.textContent = DEC_LABELS[d] || d.toUpperCase();
+    decBadge.className   = `dec-badge ${DEC_CLS[d] || 'd-pending'}`;
+    decNotes.textContent = prev.notes || ep.description || '';
     document.getElementById('rev-notes').value = prev.notes || '';
     setDecision(d);
     const pl = document.getElementById('prev-label');
     pl.textContent = `Saved: ${d}`;
-    pl.style.color = d === 'approve' ? 'var(--green)' : d === 'reject' ? 'var(--red)' : 'var(--yellow)';
+    pl.style.color = d==='approve'?'var(--green)':d==='reject'?'var(--red)':'var(--yellow)';
   } else {
-    decisionBadge.textContent = 'PENDING';
-    decisionBadge.className   = 'decision-badge d-pending';
-    decisionNotes.textContent = episodeData.description || '—';
+    decBadge.textContent = 'PENDING'; decBadge.className = 'dec-badge d-pending';
+    decNotes.textContent = ep.description || '—';
     document.getElementById('rev-notes').value = '';
     document.getElementById('prev-label').textContent = '';
   }
 
-  // Camera — angled view centered on episode
-  const xs = episodeData.states.map(s => s[0]);
-  const ys = episodeData.states.map(s => s[1]);
-  const cx = (Math.min(...xs) + Math.max(...xs)) / 2;
-  const cy = (Math.min(...ys) + Math.max(...ys)) / 2;
-  const span = Math.max(Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys), 2.0);
-  controls.target.set(cx, 0.1, cy);
-  camera.position.set(cx + span * 0.65, span * 1.0, cy + span * 0.85);
+  // Camera
+  const xs = ep.states.map(s=>s[0]), ys = ep.states.map(s=>s[1]);
+  const cx = (Math.min(...xs)+Math.max(...xs))/2, cy = (Math.min(...ys)+Math.max(...ys))/2;
+  const span = Math.max(Math.max(...xs)-Math.min(...xs), Math.max(...ys)-Math.min(...ys), 2.0);
+  controls.target.set(cx, .1, cy);
+  camera.position.set(cx+span*.65, span*1.0, cy+span*.85);
   controls.update();
 
-  buildTrajectoryGeometry();
+  buildTrajectoryGeo();
   loadChart();
-  syncUI();
+
+  // Right queue — episodes for same dataset
+  await loadEpQueue(ep);
+  refreshStats();
+  syncVizUI();
 }
 
-// ── Episode list ──────────────────────────────────────────────────────────────
-async function loadEpisodeList() {
-  const res = await fetch('/api/episodes');
-  const eps = await res.json();
+async function loadEpQueue(currentEp) {
+  // Find dataset for this episode
+  const dsId = S.dataset?.id || (currentEp.id.includes('_ep') ? currentEp.id.split('_ep')[0] : null);
+  const queue = document.getElementById('ep-queue');
 
-  // Header pills
-  const pillBar = document.getElementById('ep-pill-bar');
-  pillBar.innerHTML = '';
-  for (const ep of eps) {
-    const pill = document.createElement('div');
-    pill.className  = 'ep-pill';
-    pill.dataset.id = ep.id;
-    const dotCls    = `pdot pdot-${ep.review === 'pending' ? 'pending' : ep.review}`;
-    const icon      = ep.review === 'approve' ? '✓' : ep.review === 'reject' ? '✗' : ep.review === 'flag' ? '⚑' : '·';
-    pill.innerHTML  = `<div class="${dotCls}"></div>${ep.id} <span style="opacity:.6">${icon}</span>`;
-    pill.addEventListener('click', () => selectEpisode(ep.id));
-    pillBar.appendChild(pill);
+  // Use S.episodeList if available, otherwise fetch
+  let episodes = S.episodeList;
+  if (!episodes?.length && dsId) {
+    try {
+      const r = await fetch(`/api/datasets/${dsId}/episodes`);
+      const d = await r.json();
+      episodes = d.episodes;
+    } catch(_) { episodes = []; }
   }
+  if (!episodes?.length) { queue.innerHTML = ''; return; }
 
-  // Right panel queue
-  const queue = document.getElementById('review-queue');
-  queue.innerHTML = '';
-  for (const ep of eps) {
-    const el = document.createElement('div');
-    el.className  = 'rq-item';
-    el.dataset.id = ep.id;
-    const rdot    = `rdot rdot-${ep.review === 'pending' ? 'pending' : ep.review}`;
-    el.innerHTML  = `
+  queue.innerHTML = episodes.map(ep => `
+    <div class="rq-item${ep.id===currentEp.id?' active':''}" data-id="${ep.id}" onclick="vizSelectEp('${ep.id}')">
       <div class="rq-top">
-        <div class="${rdot}"></div>
+        <div class="ep-rdot ep-rdot-${ep.review==='pending'?'pending':ep.review}"></div>
         <span class="rq-id">${ep.id}</span>
         <span class="badge b-${ep.failure_class}">${ep.failure_class.replace(/_/g,' ')}</span>
       </div>
-      <div class="rq-sub">${ep.n_timesteps} steps${ep.failure_step >= 0 ? ` · fail@${ep.failure_step}` : ''}</div>`;
-    el.addEventListener('click', () => selectEpisode(ep.id));
-    queue.appendChild(el);
-  }
-
-  if (eps.length) selectEpisode(eps[0].id);
-  refreshStats();
+      <div class="rq-sub">${ep.n_timesteps} steps${ep.failure_step>=0?' · fail@'+ep.failure_step:''}</div>
+    </div>`).join('');
 }
 
-function selectEpisode(id) {
-  document.querySelectorAll('.ep-pill').forEach(p => p.classList.toggle('active', p.dataset.id === id));
-  document.querySelectorAll('.rq-item').forEach(r => r.classList.toggle('active', r.dataset.id === id));
-  loadEpisode(id);
-}
+window.vizSelectEp = async function(id) {
+  const r  = await fetch(`/api/episodes/${id}`);
+  const ep = await r.json();
+  document.querySelectorAll('.rq-item').forEach(i => i.classList.toggle('active', i.dataset.id === id));
+  navigateTo('viz', { episodeData: ep });
+};
 
-// ── Flag panel ────────────────────────────────────────────────────────────────
-function setFlagPanelVisible(v) {
-  document.getElementById('flag-panel').classList.toggle('visible', v);
-}
+// Review
+function setFlagPanelVisible(v) { document.getElementById('flag-panel').classList.toggle('visible', v); }
 document.querySelectorAll('.flag-chip').forEach(chip => {
   chip.addEventListener('click', () => {
     document.querySelectorAll('.flag-chip').forEach(c => c.classList.remove('active'));
     chip.classList.add('active');
     const notes = document.getElementById('rev-notes');
-    notes.value = `[${chip.dataset.reason}] ${notes.value.replace(/^\[.*?\]\s*/, '')}`.trimEnd();
+    notes.value = `[${chip.dataset.reason}] ${notes.value.replace(/^\[.*?\]\s*/,'')}`.trimEnd();
     setDecision('flag');
   });
 });
 
-// ── Review logic ──────────────────────────────────────────────────────────────
 function setDecision(d) {
   pendingDecision = d;
-  ['approve','reject','flag'].forEach(k =>
-    document.getElementById('btn-' + k).classList.toggle('active', d === k));
+  ['approve','reject','flag'].forEach(k => document.getElementById('btn-'+k).classList.toggle('active', d===k));
   document.getElementById('btn-submit').disabled = !d;
   setFlagPanelVisible(d === 'flag');
 }
 
 async function submitReview() {
-  if (!episodeData || !pendingDecision) return;
+  if (!S.episodeData || !pendingDecision) return;
   const notes = document.getElementById('rev-notes').value;
-  await fetch(`/api/review/${episodeData.id}`, {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
+  await fetch(`/api/review/${S.episodeData.id}`, {
+    method:'POST', headers:{'Content-Type':'application/json'},
     body: JSON.stringify({ decision: pendingDecision, notes }),
   });
-  // Update queue dot
-  const rqDot = document.querySelector(`.rq-item[data-id="${episodeData.id}"] .rdot`);
-  if (rqDot) rqDot.className = `rdot rdot-${pendingDecision}`;
-  // Update pill dot
-  const pillDot = document.querySelector(`.ep-pill[data-id="${episodeData.id}"] .pdot`);
-  if (pillDot) pillDot.className = `pdot pdot-${pendingDecision}`;
-  // Update AI decision card
   const d = pendingDecision;
-  document.getElementById('decision-badge').textContent = DECISION_LABELS[d];
-  document.getElementById('decision-badge').className   = `decision-badge ${DECISION_CLASSES[d]}`;
+  const rqDot = document.querySelector(`.rq-item[data-id="${S.episodeData.id}"] .ep-rdot`);
+  if (rqDot) rqDot.className = `ep-rdot ep-rdot-${d}`;
+  document.getElementById('dec-badge').textContent = DEC_LABELS[d];
+  document.getElementById('dec-badge').className   = `dec-badge ${DEC_CLS[d]}`;
   const pl = document.getElementById('prev-label');
   pl.textContent = `Saved: ${d}`;
-  pl.style.color = d === 'approve' ? 'var(--green)' : d === 'reject' ? 'var(--red)' : 'var(--yellow)';
+  pl.style.color = d==='approve'?'var(--green)':d==='reject'?'var(--red)':'var(--yellow)';
   refreshStats();
 }
 
 async function refreshStats() {
-  const r = await fetch('/api/reviews');
-  const { summary } = await r.json();
-  document.getElementById('pill-a').textContent = `${summary.approved} approved`;
-  document.getElementById('pill-r').textContent = `${summary.rejected} rejected`;
-  document.getElementById('pill-f').textContent = `${summary.flagged} flagged`;
-  document.getElementById('pill-p').textContent = `${summary.pending} pending`;
-  document.getElementById('s-a').textContent = summary.approved;
-  document.getElementById('s-r').textContent = summary.rejected;
-  document.getElementById('s-f').textContent = summary.flagged;
-  document.getElementById('s-p').textContent = summary.pending;
+  try {
+    const r = await fetch('/api/reviews');
+    const { summary } = await r.json();
+    document.getElementById('pill-a').textContent = `${summary.approved} approved`;
+    document.getElementById('pill-r').textContent = `${summary.rejected} rejected`;
+    document.getElementById('pill-f').textContent = `${summary.flagged} flagged`;
+    document.getElementById('pill-p').textContent = `${summary.pending} pending`;
+    document.getElementById('s-a').textContent = summary.approved;
+    document.getElementById('s-r').textContent = summary.rejected;
+    document.getElementById('s-f').textContent = summary.flagged;
+    document.getElementById('s-p').textContent = summary.pending;
+  } catch(_) {}
 }
 
-// ── Controls ──────────────────────────────────────────────────────────────────
+// Controls
 document.getElementById('btn-play').addEventListener('click', () => {
-  if (!episodeData) return;
-  if (currentStep >= episodeData.n_timesteps - 1) currentStep = 0;
+  if (!S.episodeData) return;
+  if (currentStep >= S.episodeData.n_timesteps - 1) currentStep = 0;
   setPlaying(!isPlaying);
 });
-document.getElementById('btn-start').addEventListener('click', () => { currentStep = 0; setPlaying(false); syncUI(); });
+document.getElementById('btn-start').addEventListener('click', () => { currentStep=0; setPlaying(false); syncVizUI(); });
 document.getElementById('btn-end').addEventListener('click', () => {
-  if (episodeData) { currentStep = episodeData.n_timesteps - 1; setPlaying(false); syncUI(); }
+  if (S.episodeData) { currentStep=S.episodeData.n_timesteps-1; setPlaying(false); syncVizUI(); }
 });
-document.getElementById('scrubber').addEventListener('input', e => {
-  currentStep = +e.target.value; setPlaying(false); syncUI();
-});
-document.getElementById('speed-sel').addEventListener('change', e => { playSpeed = +e.target.value; });
+document.getElementById('scrubber').addEventListener('input', e => { currentStep=+e.target.value; setPlaying(false); syncVizUI(); });
+document.getElementById('speed-sel').addEventListener('change', e => { playSpeed=+e.target.value; });
 document.getElementById('btn-approve').addEventListener('click', () => setDecision('approve'));
 document.getElementById('btn-reject').addEventListener('click',  () => setDecision('reject'));
 document.getElementById('btn-flag').addEventListener('click',    () => setDecision('flag'));
 document.getElementById('btn-submit').addEventListener('click',  submitReview);
 
 window.addEventListener('keydown', e => {
-  if (!episodeData || e.target.tagName === 'TEXTAREA') return;
-  if (e.code === 'Space') { e.preventDefault(); document.getElementById('btn-play').click(); }
-  else if (e.code === 'ArrowLeft')  { currentStep = Math.max(0, currentStep - 1); setPlaying(false); syncUI(); }
-  else if (e.code === 'ArrowRight') { currentStep = Math.min(episodeData.n_timesteps - 1, currentStep + 1); setPlaying(false); syncUI(); }
-  else if (e.key === 'a') setDecision('approve');
-  else if (e.key === 'r') setDecision('reject');
-  else if (e.key === 'f') setDecision('flag');
+  if (S.view !== 'viz' || e.target.tagName === 'TEXTAREA') return;
+  if (e.code==='Space'){e.preventDefault();document.getElementById('btn-play').click();}
+  else if(e.code==='ArrowLeft'){currentStep=Math.max(0,currentStep-1);setPlaying(false);syncVizUI();}
+  else if(e.code==='ArrowRight'){if(S.episodeData)currentStep=Math.min(S.episodeData.n_timesteps-1,currentStep+1);setPlaying(false);syncVizUI();}
+  else if(e.key==='a')setDecision('approve');
+  else if(e.key==='r')setDecision('reject');
+  else if(e.key==='f')setDecision('flag');
 });
 
-loadEpisodeList();
+// ── Boot ──────────────────────────────────────────────────────────────────────
+updateBreadcrumb();
+onEnterHome();
+refreshStats();
 </script>
 </body>
 </html>
