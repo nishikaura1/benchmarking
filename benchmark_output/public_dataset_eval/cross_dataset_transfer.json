@@ -1,0 +1,124 @@
+{
+  "cross_dataset_pairs": [
+    {
+      "source": "botfails",
+      "target": "robofac",
+      "source_label_type": "human",
+      "target_label_type": "vqa",
+      "cross_macro_f1": 0.1597,
+      "target_indist_macro_f1": 0.6563,
+      "delta_f1": -0.4966,
+      "n_source": 200,
+      "n_target": 200,
+      "feature_dim_used": 24
+    },
+    {
+      "source": "botfails",
+      "target": "vifailback",
+      "source_label_type": "human",
+      "target_label_type": "human",
+      "cross_macro_f1": 0.0521,
+      "target_indist_macro_f1": 0.4872,
+      "delta_f1": -0.435,
+      "n_source": 200,
+      "n_target": 200,
+      "feature_dim_used": 12
+    },
+    {
+      "source": "botfails",
+      "target": "lerobot_reward",
+      "source_label_type": "human",
+      "target_label_type": "reward",
+      "cross_macro_f1": 0.3776,
+      "target_indist_macro_f1": 0.8793,
+      "delta_f1": -0.5016,
+      "n_source": 200,
+      "n_target": 200,
+      "feature_dim_used": 60
+    },
+    {
+      "source": "botfails",
+      "target": "uci_failures",
+      "source_label_type": "human",
+      "target_label_type": "human",
+      "cross_macro_f1": 0.4135,
+      "target_indist_macro_f1": 0.7619,
+      "delta_f1": -0.3484,
+      "n_source": 200,
+      "n_target": 200,
+      "feature_dim_used": 72
+    },
+    {
+      "source": "robofac",
+      "target": "vifailback",
+      "source_label_type": "vqa",
+      "target_label_type": "human",
+      "cross_macro_f1": 0.4859,
+      "target_indist_macro_f1": 0.4872,
+      "delta_f1": -0.0013,
+      "n_source": 200,
+      "n_target": 200,
+      "feature_dim_used": 12
+    },
+    {
+      "source": "robofac",
+      "target": "lerobot_reward",
+      "source_label_type": "vqa",
+      "target_label_type": "reward",
+      "cross_macro_f1": 0.278,
+      "target_indist_macro_f1": 0.8611,
+      "delta_f1": -0.5831,
+      "n_source": 200,
+      "n_target": 200,
+      "feature_dim_used": 24
+    },
+    {
+      "source": "robofac",
+      "target": "uci_failures",
+      "source_label_type": "vqa",
+      "target_label_type": "human",
+      "cross_macro_f1": 0.4135,
+      "target_indist_macro_f1": 0.7619,
+      "delta_f1": -0.3484,
+      "n_source": 200,
+      "n_target": 200,
+      "feature_dim_used": 24
+    },
+    {
+      "source": "vifailback",
+      "target": "lerobot_reward",
+      "source_label_type": "human",
+      "target_label_type": "reward",
+      "cross_macro_f1": 0.278,
+      "target_indist_macro_f1": 0.84,
+      "delta_f1": -0.562,
+      "n_source": 200,
+      "n_target": 200,
+      "feature_dim_used": 12
+    },
+    {
+      "source": "vifailback",
+      "target": "uci_failures",
+      "source_label_type": "human",
+      "target_label_type": "human",
+      "cross_macro_f1": 0.4135,
+      "target_indist_macro_f1": 0.7619,
+      "delta_f1": -0.3484,
+      "n_source": 200,
+      "n_target": 200,
+      "feature_dim_used": 12
+    },
+    {
+      "source": "lerobot_reward",
+      "target": "uci_failures",
+      "source_label_type": "reward",
+      "target_label_type": "human",
+      "cross_macro_f1": 0.2278,
+      "target_indist_macro_f1": 0.7619,
+      "delta_f1": -0.5341,
+      "n_source": 200,
+      "n_target": 200,
+      "feature_dim_used": 60
+    }
+  ]
+}

@@ -1,0 +1,181 @@
+{
+  "dataset": "vifailback",
+  "label_type": "human",
+  "n_episodes_total": 200,
+  "n_episodes_usable": 200,
+  "feature_dim": 12,
+  "label_distribution": {
+    "nominal": 11,
+    "failure": 189
+  },
+  "eda": {
+    "dataset": "vifailback",
+    "n_episodes": 200,
+    "label_distribution": {
+      "nominal": 11,
+      "failure": 189
+    },
+    "label_type": "human",
+    "timesteps_mean": 1.0,
+    "timesteps_min": 1,
+    "timesteps_max": 1,
+    "state_dim": 1,
+    "has_actions_pct": 0.0,
+    "has_step_labels_pct": 0.0,
+    "has_video_pct": 0.0,
+    "class_balance": {
+      "nominal": 0.055,
+      "failure": 0.945
+    }
+  },
+  "model_results": {
+    "IsolationForest": {
+      "model": "IsolationForest",
+      "label_type": "human",
+      "n_nominal": 11,
+      "n_failure": 189,
+      "fit_on": "nominal_only",
+      "anomaly_score_mean": 0.0,
+      "anomaly_score_std": 0.0,
+      "threshold_75pct": 0.0,
+      "metrics_75pct": {
+        "label_type": "human",
+        "n_samples": 200,
+        "n_positive": 189,
+        "class_balance": 0.945,
+        "accuracy": 0.945,
+        "precision": 0.945,
+        "recall": 1.0,
+        "f1": 0.9717,
+        "macro_f1": 0.4859,
+        "confusion_matrix": {
+          "tn": 0,
+          "fp": 11,
+          "fn": 0,
+          "tp": 189
+        },
+        "false_positive_rate": 1.0,
+        "detection_rate": 1.0,
+        "roc_auc": 0.5,
+        "pr_auc": 0.945,
+        "brier_score": 0.945
+      },
+      "review_rate_sweep": {
+        "review_rate_10pct": {
+          "threshold": 0.0,
+          "review_rate_actual": 1.0,
+          "precision": 0.945,
+          "recall": 1.0
+        },
+        "review_rate_20pct": {
+          "threshold": 0.0,
+          "review_rate_actual": 1.0,
+          "precision": 0.945,
+          "recall": 1.0
+        },
+        "review_rate_30pct": {
+          "threshold": 0.0,
+          "review_rate_actual": 1.0,
+          "precision": 0.945,
+          "recall": 1.0
+        }
+      }
+    },
+    "RandomForest": {
+      "model": "RandomForest",
+      "label_type": "human",
+      "classes": [
+        "failure",
+        "nominal"
+      ],
+      "class_distribution": {
+        "failure": 189,
+        "nominal": 11
+      },
+      "n_samples": 200,
+      "n_classes": 2,
+      "evaluation": "stratified_cv",
+      "n_folds": 5,
+      "metrics": {
+        "label_type": "human",
+        "n_samples": 200,
+        "n_positive": 189,
+        "class_balance": 0.945,
+        "accuracy": 0.945,
+        "precision": 0.945,
+        "recall": 1.0,
+        "f1": 0.9717,
+        "macro_f1": 0.4859,
+        "confusion_matrix": {
+          "tn": 0,
+          "fp": 11,
+          "fn": 0,
+          "tp": 189
+        },
+        "false_positive_rate": 1.0,
+        "detection_rate": 1.0,
+        "roc_auc": 0.4808,
+        "pr_auc": 0.9436,
+        "brier_score": 0.2427
+      }
+    },
+    "HistGradientBoosting": {
+      "model": "HistGradientBoosting",
+      "label_type": "human",
+      "classes": [
+        "failure",
+        "nominal"
+      ],
+      "class_distribution": {
+        "failure": 189,
+        "nominal": 11
+      },
+      "n_samples": 200,
+      "n_classes": 2,
+      "evaluation": "stratified_cv",
+      "n_folds": 5,
+      "metrics": {
+        "label_type": "human",
+        "n_samples": 200,
+        "n_positive": 189,
+        "class_balance": 0.945,
+        "accuracy": 0.945,
+        "precision": 0.945,
+        "recall": 1.0,
+        "f1": 0.9717,
+        "macro_f1": 0.4859,
+        "confusion_matrix": {
+          "tn": 0,
+          "fp": 11,
+          "fn": 0,
+          "tp": 189
+        },
+        "false_positive_rate": 1.0,
+        "detection_rate": 1.0,
+        "roc_auc": 0.4615,
+        "pr_auc": 0.9411,
+        "brier_score": 0.052
+      }
+    }
+  },
+  "access_report": {
+    "dataset": "vifailback",
+    "url": "https://huggingface.co/datasets/sii-rhos-ai/ViFailback-Dataset",
+    "label_type": "human",
+    "attempted": true,
+    "success": true,
+    "n_episodes": 200,
+    "failure_reason": null,
+    "caveats": [
+      "Paired failure/correction structure \u2014 each failure has a correction episode",
+      "Episode labels assumed: 'failure' for failure episodes, 'nominal' for corrections",
+      "Step-level labels not confirmed \u2014 derived from episode label",
+      "Label type classified as 'human' but may include heuristic elements"
+    ],
+    "label_distribution": {
+      "nominal": 11,
+      "failure": 189
+    }
+  },
+  "elapsed_seconds": 1.62
+}

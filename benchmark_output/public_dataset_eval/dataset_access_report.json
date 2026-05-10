@@ -1,0 +1,104 @@
+{
+  "botfails": {
+    "dataset": "botfails",
+    "url": "https://huggingface.co/datasets/kantine/BotFails",
+    "label_type": "human",
+    "attempted": true,
+    "success": true,
+    "n_episodes": 200,
+    "failure_reason": null,
+    "caveats": [
+      "Human-labeled episode-level failure/success",
+      "Step-level labels not confirmed \u2014 may require parsing annotations field",
+      "Loaded via direct parquet download \u2014 datasets library Video feature workaround"
+    ],
+    "source": "direct parquet download via huggingface_hub",
+    "label_distribution": {
+      "nominal": 100,
+      "failure": 100
+    },
+    "has_step_labels": 0
+  },
+  "robofac": {
+    "dataset": "robofac",
+    "url": "https://huggingface.co/datasets/MINT-SJTU/RoboFAC-dataset",
+    "label_type": "vqa",
+    "attempted": true,
+    "success": true,
+    "n_episodes": 200,
+    "failure_reason": null,
+    "caveats": [
+      "VQA labels: human-written QA about failure causes \u2014 not structured failure taxonomy",
+      "Video data may not be available in HF dataset (could be metadata only)",
+      "Failure category extracted from QA text via keyword matching \u2014 noisy",
+      "No proprioceptive state sequences \u2014 visual-only dataset",
+      "\u26a0 NO STATE DATA: Only elapsed_steps used as feature. Tabular models will have near-random performance. Visual model (CLIP on videos) required for meaningful evaluation."
+    ],
+    "source": "simulation JSON files (direct download)",
+    "label_distribution": {
+      "failure": 162,
+      "nominal": 38
+    }
+  },
+  "vifailback": {
+    "dataset": "vifailback",
+    "url": "https://huggingface.co/datasets/sii-rhos-ai/ViFailback-Dataset",
+    "label_type": "human",
+    "attempted": true,
+    "success": true,
+    "n_episodes": 200,
+    "failure_reason": null,
+    "caveats": [
+      "Paired failure/correction structure \u2014 each failure has a correction episode",
+      "Episode labels assumed: 'failure' for failure episodes, 'nominal' for corrections",
+      "Step-level labels not confirmed \u2014 derived from episode label",
+      "Label type classified as 'human' but may include heuristic elements"
+    ],
+    "label_distribution": {
+      "nominal": 11,
+      "failure": 189
+    }
+  },
+  "lerobot_reward": {
+    "dataset": "lerobot_reward",
+    "url": "https://huggingface.co/datasets/lerobot/xarm_lift_medium_replay",
+    "label_type": "reward",
+    "attempted": true,
+    "success": true,
+    "n_episodes": 200,
+    "failure_reason": null,
+    "caveats": [
+      "Label derived from reward signal: success = reward[-1] > 0.5",
+      "Reward threshold 0.5 is arbitrary \u2014 different thresholds give different class balance",
+      "No explicit failure category labels \u2014 only success/failure binary",
+      "Hard negatives may exist: low reward episodes that look nominal visually",
+      "xarm_lift is a simulation dataset \u2014 sim-to-real gap applies"
+    ],
+    "source": "lerobot/xarm_lift_medium_replay",
+    "rows_consumed": 5002,
+    "label_distribution": {
+      "failure": 77,
+      "nominal": 123
+    }
+  },
+  "uci_failures": {
+    "dataset": "uci_failures",
+    "url": "https://archive.ics.uci.edu/static/public/138/robot+execution+failures.zip",
+    "label_type": "human",
+    "attempted": true,
+    "success": true,
+    "n_episodes": 200,
+    "failure_reason": null,
+    "caveats": [
+      "Human-labeled failure classes \u2014 gold standard for tabular models",
+      "Proprioceptive only (force/torque from PUMA-560 arm) \u2014 no video",
+      "Small dataset: typically 88 episodes across 5 task files",
+      "Sim-to-real: collected on real robot but 1980s-90s hardware",
+      "Cross-dataset transfer to modern robots may be poor"
+    ],
+    "label_distribution": {
+      "nominal": 59,
+      "failure": 141
+    }
+  }
+}

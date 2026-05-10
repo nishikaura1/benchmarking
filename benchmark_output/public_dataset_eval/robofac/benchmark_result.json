@@ -1,0 +1,183 @@
+{
+  "dataset": "robofac",
+  "label_type": "vqa",
+  "n_episodes_total": 200,
+  "n_episodes_usable": 200,
+  "feature_dim": 24,
+  "label_distribution": {
+    "failure": 162,
+    "nominal": 38
+  },
+  "eda": {
+    "dataset": "robofac",
+    "n_episodes": 200,
+    "label_distribution": {
+      "failure": 162,
+      "nominal": 38
+    },
+    "label_type": "vqa",
+    "timesteps_mean": 1.0,
+    "timesteps_min": 1,
+    "timesteps_max": 1,
+    "state_dim": 2,
+    "has_actions_pct": 0.0,
+    "has_step_labels_pct": 0.0,
+    "has_video_pct": 0.0,
+    "class_balance": {
+      "failure": 0.81,
+      "nominal": 0.19
+    }
+  },
+  "model_results": {
+    "IsolationForest": {
+      "model": "IsolationForest",
+      "label_type": "vqa",
+      "n_nominal": 38,
+      "n_failure": 162,
+      "fit_on": "nominal_only",
+      "anomaly_score_mean": 0.4059,
+      "anomaly_score_std": 0.2431,
+      "threshold_75pct": 0.3683,
+      "metrics_75pct": {
+        "label_type": "vqa",
+        "n_samples": 200,
+        "n_positive": 162,
+        "class_balance": 0.81,
+        "accuracy": 0.625,
+        "precision": 0.9065,
+        "recall": 0.5988,
+        "f1": 0.7212,
+        "macro_f1": 0.5743,
+        "confusion_matrix": {
+          "tn": 28,
+          "fp": 10,
+          "fn": 65,
+          "tp": 97
+        },
+        "false_positive_rate": 0.2632,
+        "detection_rate": 0.5988,
+        "roc_auc": 0.7598,
+        "pr_auc": 0.9201,
+        "brier_score": 0.3105
+      },
+      "review_rate_sweep": {
+        "review_rate_10pct": {
+          "threshold": 0.7553,
+          "review_rate_actual": 0.1,
+          "precision": 0.95,
+          "recall": 0.1173
+        },
+        "review_rate_20pct": {
+          "threshold": 0.6285,
+          "review_rate_actual": 0.2,
+          "precision": 0.95,
+          "recall": 0.2346
+        },
+        "review_rate_30pct": {
+          "threshold": 0.5364,
+          "review_rate_actual": 0.3,
+          "precision": 0.95,
+          "recall": 0.3519
+        }
+      }
+    },
+    "RandomForest": {
+      "model": "RandomForest",
+      "label_type": "vqa",
+      "classes": [
+        "failure",
+        "nominal"
+      ],
+      "class_distribution": {
+        "failure": 162,
+        "nominal": 38
+      },
+      "n_samples": 200,
+      "n_classes": 2,
+      "evaluation": "stratified_cv",
+      "n_folds": 5,
+      "metrics": {
+        "label_type": "vqa",
+        "n_samples": 200,
+        "n_positive": 162,
+        "class_balance": 0.81,
+        "accuracy": 0.81,
+        "precision": 0.8483,
+        "recall": 0.9321,
+        "f1": 0.8882,
+        "macro_f1": 0.6275,
+        "confusion_matrix": {
+          "tn": 11,
+          "fp": 27,
+          "fn": 11,
+          "tp": 151
+        },
+        "false_positive_rate": 0.7105,
+        "detection_rate": 0.9321,
+        "roc_auc": 0.7562,
+        "pr_auc": 0.9177,
+        "brier_score": 0.1386
+      }
+    },
+    "HistGradientBoosting": {
+      "model": "HistGradientBoosting",
+      "label_type": "vqa",
+      "classes": [
+        "failure",
+        "nominal"
+      ],
+      "class_distribution": {
+        "failure": 162,
+        "nominal": 38
+      },
+      "n_samples": 200,
+      "n_classes": 2,
+      "evaluation": "stratified_cv",
+      "n_folds": 5,
+      "metrics": {
+        "label_type": "vqa",
+        "n_samples": 200,
+        "n_positive": 162,
+        "class_balance": 0.81,
+        "accuracy": 0.83,
+        "precision": 0.8441,
+        "recall": 0.9691,
+        "f1": 0.9023,
+        "macro_f1": 0.6242,
+        "confusion_matrix": {
+          "tn": 9,
+          "fp": 29,
+          "fn": 5,
+          "tp": 157
+        },
+        "false_positive_rate": 0.7632,
+        "detection_rate": 0.9691,
+        "roc_auc": 0.7652,
+        "pr_auc": 0.9203,
+        "brier_score": 0.1275
+      }
+    }
+  },
+  "access_report": {
+    "dataset": "robofac",
+    "url": "https://huggingface.co/datasets/MINT-SJTU/RoboFAC-dataset",
+    "label_type": "vqa",
+    "attempted": true,
+    "success": true,
+    "n_episodes": 200,
+    "failure_reason": null,
+    "caveats": [
+      "VQA labels: human-written QA about failure causes \u2014 not structured failure taxonomy",
+      "Video data may not be available in HF dataset (could be metadata only)",
+      "Failure category extracted from QA text via keyword matching \u2014 noisy",
+      "No proprioceptive state sequences \u2014 visual-only dataset",
+      "\u26a0 NO STATE DATA: Only elapsed_steps used as feature. Tabular models will have near-random performance. Visual model (CLIP on videos) required for meaningful evaluation."
+    ],
+    "source": "simulation JSON files (direct download)",
+    "label_distribution": {
+      "failure": 162,
+      "nominal": 38
+    }
+  },
+  "elapsed_seconds": 1.93
+}

@@ -119,30 +119,133 @@ def load_botfails(max_episodes: int = 300) -> tuple[list[dict], dict]:
         return [], report
 
     try:
-        print("[BotFails] Attempting HuggingFace load (streaming)…")
+        print("[BotFails] Loading via direct parquet download (HF Hub)…")
+        # BotFails has Video feature type unsupported by datasets<=2.x.
+        # Structure: normal_train/{task}_expert/*.parquet (nominal)
+        #            test/{task}_anomaly/*.parquet       (failure)
+        #            labels/{task}_anomaly/*.csv          (step labels, col '0')
+        try:
+            from huggingface_hub import list_repo_files, hf_hub_download  # type: ignore
+            import pandas as pd  # type: ignore
+        except ImportError as ie:
+            raise Exception(f"huggingface_hub or pandas not available: {ie}")
+
+        all_files = list(list_repo_files("kantine/BotFails", repo_type="dataset"))
+        nominal_pqs = [f for f in all_files if "normal_train" in f and f.endswith(".parquet")]
+        anomaly_pqs = [f for f in all_files if "/test/" in f and "anomaly" in f and f.endswith(".parquet")]
+        label_csvs  = {f.split("/")[-1].replace("_labels.csv", ""): f
+                       for f in all_files if f.endswith("_labels.csv")}
+
+        # Sample up to max_episodes/2 from each class
+        per_class = max_episodes // 2
+        nominal_pqs  = nominal_pqs[:per_class]
+        anomaly_pqs  = anomaly_pqs[:per_class]
+
+        episodes = []
+        def load_botfails_parquet(pq_path, ep_label, label_csv_path=None, ep_idx=0):
+            local = hf_hub_download("kantine/BotFails", pq_path, repo_type="dataset")
+            df = pd.read_parquet(local)
+            states = np.array(df["observation.state"].tolist(), dtype=np.float32)
+            if states.ndim == 1:
+                states = states.reshape(-1, 1)
+            actions = None
+            if "action" in df.columns:
+                try:
+                    actions = np.array(df["action"].tolist(), dtype=np.float32)
+                    if actions.ndim == 1:
+                        actions = actions.reshape(-1, 1)
+                except Exception:
+                    pass
+            step_labels = None
+            if label_csv_path:
+                try:
+                    llocal = hf_hub_download("kantine/BotFails", label_csv_path, repo_type="dataset")
+                    ldf = pd.read_csv(llocal)
+                    step_labels = ldf.iloc[:, 0].values.astype(int)
+                    if len(step_labels) != len(states):
+                        step_labels = None  # length mismatch — skip
+                except Exception:
+                    pass
+            ep_name = pq_path.split("/")[-1].replace(".parquet", "")
+            return make_episode(
+                dataset_name="botfails",
+                episode_id=f"botfails_{ep_label}_{ep_idx:04d}_{ep_name}",
+                state_seq=states,
+                action_seq=actions,
+                episode_label=ep_label,
+                step_labels=step_labels,
+                failure_category=None if ep_label == "nominal" else "unspecified_anomaly",
+                source_label_type="human",
+                metadata={"parquet_path": pq_path, "has_step_labels": step_labels is not None},
+            )
+
+        for i, pq in enumerate(nominal_pqs):
+            try:
+                ep = load_botfails_parquet(pq, "nominal", None, i)
+                episodes.append(ep)
+            except Exception as e:
+                print(f"[BotFails] Nominal parquet {i} failed: {e}")
+
+        for i, pq in enumerate(anomaly_pqs):
+            ep_key = pq.split("/")[-1].replace(".parquet", "") + "_labels"
+            csv_path = label_csvs.get(pq.split("/")[-1].replace(".parquet", ""))
+            # Match: labels/{task}_anomaly/episode_XXXXXX_labels.csv
+            task_dir = "/".join(pq.split("/")[1:3])  # e.g. test/domotic_dishTidyUp_anomaly
+            label_key = pq.split("/")[-1].replace(".parquet", "")
+            csv_path = label_csvs.get(label_key)
+            try:
+                ep = load_botfails_parquet(pq, "failure", csv_path, i)
+                episodes.append(ep)
+            except Exception as e:
+                print(f"[BotFails] Anomaly parquet {i} failed: {e}")
+
+        if not episodes:
+            raise Exception("No episodes loaded from parquet files")
+
+        report["success"] = True
+        report["n_episodes"] = len(episodes)
+        report["source"] = "direct parquet download via huggingface_hub"
+        report["caveats"].append(
+            "Loaded via direct parquet download — datasets library Video feature workaround")
+        label_counts = {}
+        for ep in episodes:
+            lbl = ep["episode_label"] or "unknown"
+            label_counts[lbl] = label_counts.get(lbl, 0) + 1
+        report["label_distribution"] = label_counts
+        step_label_count = sum(1 for ep in episodes if ep["step_labels"] is not None)
+        report["has_step_labels"] = step_label_count
+        print(f"[BotFails] Loaded {len(episodes)} episodes ({step_label_count} with step labels). "
+              f"Labels: {label_counts}")
+        return episodes, report
+
+    except Exception as e:
+        report["failure_reason"] = str(e)
+        print(f"[BotFails] Direct parquet load FAILED: {e}")
+        # No fallback — BotFails is the highest-priority human-labeled dataset
+        return [], report
+
+
+def _load_botfails_hf_streaming_legacy(report, max_episodes):
+    """Legacy streaming path — kept for reference but not called."""
+    try:
+        from datasets import load_dataset  # type: ignore
+    except ImportError:
+        return [], report
+
+    try:
+        from datasets import load_dataset  # type: ignore
         ds = load_dataset("kantine/BotFails", split="train", streaming=True, trust_remote_code=True)
         episodes = []
         for i, row in enumerate(ds):
             if i >= max_episodes:
                 break
-            # BotFails/LeRobot format: state/action arrays stored per episode
-            # Try common field names
             state = None
             for k in ["observation.state", "state", "obs", "joint_pos"]:
                 if k in row and row[k] is not None:
                     state = np.array(row[k], dtype=np.float32)
                     break
-
             if state is None:
-                # Build from any numeric arrays we find
-                numeric_arrs = [np.array(v, dtype=np.float32)
-                                for v in row.values()
-                                if isinstance(v, (list, np.ndarray)) and len(v) > 1]
-                if numeric_arrs:
-                    state = np.stack(numeric_arrs, axis=-1) if numeric_arrs[0].ndim == 1 else numeric_arrs[0]
-                else:
-                    continue
-
+                continue
             if state.ndim == 1:
                 state = state.reshape(-1, 1)
 
@@ -258,66 +361,94 @@ def load_robofac(max_episodes: int = 300) -> tuple[list[dict], dict]:
         return "unspecified_failure"
 
     try:
-        print("[RoboFAC] Attempting HuggingFace load…")
-        ds = load_dataset("MINT-SJTU/RoboFAC-dataset", split="train", streaming=True, trust_remote_code=True)
+        print("[RoboFAC] Loading via direct JSON download (simulation_data)…")
+        # RoboFAC's HF dataset loader fails due to JSON format issues.
+        # We load simulation JSON files directly: each has episodes with 'success' labels.
+        # ⚠ IMPORTANT CAVEAT: No proprioceptive state data is available in these JSON files.
+        # Only metadata is accessible: elapsed_steps, episode_seed, success.
+        # This means tabular models have near-zero signal from these features.
+        # A visual encoder (CLIP on the video files) would be needed for real performance.
+        # We load anyway to preserve label structure and document the limitation.
+        try:
+            from huggingface_hub import list_repo_files, hf_hub_download  # type: ignore
+        except ImportError as ie:
+            raise Exception(f"huggingface_hub not available: {ie}")
+
+        all_files = list(list_repo_files("MINT-SJTU/RoboFAC-dataset", repo_type="dataset"))
+        sim_jsons = [f for f in all_files if f.startswith("simulation_data") and f.endswith(".json")]
+        # Limit files to avoid excessive downloads
+        sim_jsons = sim_jsons[:20]  # 20 files × ~60 episodes = ~1200 episodes max
+
         episodes = []
-        for i, row in enumerate(ds):
-            if i >= max_episodes:
+        for json_file in sim_jsons:
+            if len(episodes) >= max_episodes:
                 break
+            try:
+                local = hf_hub_download("MINT-SJTU/RoboFAC-dataset", json_file, repo_type="dataset")
+                with open(local) as fh:
+                    data = json.load(fh)
+                eps_raw = data.get("episodes", [])
+                task_name = json_file.split("/")[1] if "/" in json_file else "unknown_task"
 
-            # Extract QA text
-            qa_text = ""
-            for k in ["question", "answer", "qa", "text", "description", "annotation", "caption"]:
-                if k in row and row[k]:
-                    qa_text += str(row[k]) + " "
+                for ep_raw in eps_raw:
+                    if len(episodes) >= max_episodes:
+                        break
+                    success = ep_raw.get("success", None)
+                    elapsed = ep_raw.get("elapsed_steps", 0) or 0
+                    seed = float(ep_raw.get("episode_seed", 0) or 0)
+                    ep_id = str(ep_raw.get("episode_id", len(episodes)))
 
-            failure_cat = extract_failure_category(qa_text) if qa_text else "unspecified_failure"
+                    # Minimal features: elapsed_steps (proxy for run duration) + seed
+                    # This is explicitly documented as insufficient for meaningful ML
+                    state = np.array([[elapsed / 500.0, (seed % 1000) / 1000.0]],
+                                     dtype=np.float32)
 
-            # Try to get any numeric state (may not exist)
-            state = None
-            for k in ["state", "observation", "joint", "robot_state"]:
-                if k in row and row[k] is not None:
-                    try:
-                        arr = np.array(row[k], dtype=np.float32)
-                        if arr.ndim >= 1 and arr.size > 0:
-                            state = arr.reshape(-1, arr.shape[-1]) if arr.ndim > 1 else arr.reshape(1, -1)
-                            break
-                    except Exception:
-                        pass
+                    if success is None:
+                        episode_label = None
+                    else:
+                        episode_label = "nominal" if success else "failure"
 
-            # If no state, create a minimal placeholder (1-step, 1-dim) to preserve label
-            if state is None or state.size == 0:
-                state = np.zeros((1, 1), dtype=np.float32)
+                    # Failure category from task name keyword matching
+                    failure_cat = extract_failure_category(task_name) if episode_label == "failure" else None
 
-            # Image paths
-            img_paths = None
-            for k in ["image", "images", "video_path", "frame_path"]:
-                if k in row and row[k] is not None:
-                    img_paths = [str(row[k])] if isinstance(row[k], str) else [str(p) for p in row[k]]
-                    break
+                    ep = make_episode(
+                        dataset_name="robofac",
+                        episode_id=f"robofac_{task_name}_{ep_id}",
+                        state_seq=state,
+                        episode_label=episode_label,
+                        failure_category=failure_cat,
+                        language_task=task_name,
+                        source_label_type="vqa",
+                        metadata={
+                            "json_file": json_file,
+                            "task": task_name,
+                            "elapsed_steps": elapsed,
+                            "no_proprioceptive_data": True,
+                            "caveat": "Only elapsed_steps used as feature — no state sequence available",
+                        },
+                    )
+                    episodes.append(ep)
+            except Exception as ef:
+                print(f"[RoboFAC] File {json_file} failed: {ef}")
+                continue
 
-            ep = make_episode(
-                dataset_name="robofac",
-                episode_id=f"robofac_ep{i:05d}",
-                state_seq=state,
-                episode_label="failure",  # RoboFAC is a failure dataset
-                failure_category=failure_cat,
-                language_task=qa_text[:200] if qa_text else None,
-                source_label_type="vqa",
-                image_paths=img_paths,
-                metadata={"row_index": i, "qa_text": qa_text[:500]},
-            )
-            episodes.append(ep)
+        if not episodes:
+            raise Exception("No episodes loaded from RoboFAC JSON files")
 
-        report["success"] = len(episodes) > 0
+        report["success"] = True
         report["n_episodes"] = len(episodes)
-        if episodes:
-            cats = {}
-            for ep in episodes:
-                c = ep["failure_category"] or "unknown"
-                cats[c] = cats.get(c, 0) + 1
-            report["failure_category_distribution"] = cats
-        print(f"[RoboFAC] Loaded {len(episodes)} episodes.")
+        report["source"] = "simulation JSON files (direct download)"
+        report["caveats"].append(
+            "⚠ NO STATE DATA: Only elapsed_steps used as feature. "
+            "Tabular models will have near-random performance. "
+            "Visual model (CLIP on videos) required for meaningful evaluation."
+        )
+        label_counts = {}
+        for ep in episodes:
+            lbl = ep["episode_label"] or "unknown"
+            label_counts[lbl] = label_counts.get(lbl, 0) + 1
+        report["label_distribution"] = label_counts
+        print(f"[RoboFAC] Loaded {len(episodes)} episodes (minimal features only). Labels: {label_counts}")
         return episodes, report
 
     except Exception as e:
@@ -360,7 +491,18 @@ def load_vifailback(max_episodes: int = 300) -> tuple[list[dict], dict]:
 
     try:
         print("[ViFailback] Attempting HuggingFace load…")
-        ds = load_dataset("sii-rhos-ai/ViFailback-Dataset", split="train", streaming=True, trust_remote_code=True)
+        # ViFailback may only have 'test' split
+        for split_try in ["train", "test", "validation"]:
+            try:
+                ds = load_dataset("sii-rhos-ai/ViFailback-Dataset", split=split_try,
+                                  streaming=True, trust_remote_code=True)
+                _ = next(iter(ds))  # confirm it works
+                print(f"[ViFailback] Using split: {split_try}")
+                break
+            except Exception:
+                continue
+        else:
+            raise Exception("No accessible split found for ViFailback-Dataset")
         episodes = []
         for i, row in enumerate(ds):
             if i >= max_episodes:
@@ -543,57 +685,123 @@ def load_lerobot_reward(max_episodes: int = 300) -> tuple[list[dict], dict]:
         try:
             print(f"[LeRobot] Attempting HuggingFace load: {hf_name}…")
             ds = load_dataset(hf_name, split="train", streaming=True, trust_remote_code=True)
+
+            # LeRobot HF datasets are STEP-level (one row per timestep).
+            # We must group rows by episode_index to build episode-level data.
             episodes = []
-            for i, row in enumerate(ds):
-                if i >= max_episodes:
+            current_ep_idx = None
+            current_states = []
+            current_actions = []
+            current_rewards = []
+            rows_consumed = 0
+            MAX_ROWS = max_episodes * 200  # guard against infinite stream
+
+            def flush_episode(ep_idx, states, actions, rewards, hf_name, ep_count):
+                """Convert accumulated step rows → one episode dict."""
+                if not states:
+                    return None
+                state_arr = np.array(states, dtype=np.float32)
+                if state_arr.ndim == 1:
+                    state_arr = state_arr.reshape(-1, 1)
+
+                action_arr = None
+                if actions:
+                    try:
+                        action_arr = np.array(actions, dtype=np.float32)
+                        if action_arr.ndim == 1:
+                            action_arr = action_arr.reshape(-1, 1)
+                    except Exception:
+                        pass
+
+                # Episode success = max reward in episode > 0.5
+                reward_arr = np.array(rewards, dtype=np.float32) if rewards else None
+                reward_max = float(reward_arr.max()) if reward_arr is not None and len(reward_arr) else None
+                episode_label = None
+                if reward_max is not None:
+                    episode_label = "nominal" if reward_max > 0.5 else "failure"
+
+                return make_episode(
+                    dataset_name="lerobot_reward",
+                    episode_id=f"lerobot_{hf_name.replace('/', '_')}_ep{ep_count:05d}",
+                    state_seq=state_arr,
+                    action_seq=action_arr,
+                    episode_label=episode_label,
+                    source_label_type="reward",
+                    metadata={"hf_dataset": hf_name, "reward_max": reward_max,
+                              "n_steps": len(states), "episode_index": ep_idx},
+                )
+
+            for row in ds:
+                rows_consumed += 1
+                if rows_consumed > MAX_ROWS:
+                    break
+                if len(episodes) >= max_episodes:
                     break
 
-                state = None
+                # Get episode index from row
+                ep_idx = row.get("episode_index", row.get("episode_id", 0))
+                if isinstance(ep_idx, (list, np.ndarray)):
+                    ep_idx = int(ep_idx[0]) if len(ep_idx) else 0
+                else:
+                    ep_idx = int(ep_idx)
+
+                # New episode → flush previous
+                if current_ep_idx is not None and ep_idx != current_ep_idx:
+                    ep = flush_episode(current_ep_idx, current_states, current_actions,
+                                       current_rewards, hf_name, len(episodes))
+                    if ep:
+                        episodes.append(ep)
+                    current_states, current_actions, current_rewards = [], [], []
+
+                current_ep_idx = ep_idx
+
+                # Accumulate state
                 for k in ["observation.state", "state", "obs"]:
                     if k in row and row[k] is not None:
                         try:
-                            arr = np.array(row[k], dtype=np.float32)
-                            state = arr.reshape(-1, arr.shape[-1]) if arr.ndim > 1 else arr.reshape(1, -1)
+                            val = np.array(row[k], dtype=np.float32).flatten()
+                            current_states.append(val)
                             break
                         except Exception:
                             pass
 
-                if state is None:
-                    state = np.zeros((1, 4), dtype=np.float32)
-
-                reward_val = None
-                for k in ["reward", "rewards", "next.reward"]:
+                # Accumulate action
+                for k in ["action", "actions"]:
                     if k in row and row[k] is not None:
                         try:
-                            reward_val = float(row[k])
+                            val = np.array(row[k], dtype=np.float32).flatten()
+                            current_actions.append(val)
                             break
                         except Exception:
                             pass
 
-                episode_label = None
-                if reward_val is not None:
-                    episode_label = "nominal" if reward_val > 0.5 else "failure"
+                # Accumulate reward
+                for k in ["reward", "next.reward"]:
+                    if k in row and row[k] is not None:
+                        try:
+                            current_rewards.append(float(row[k]))
+                            break
+                        except Exception:
+                            pass
 
-                ep = make_episode(
-                    dataset_name="lerobot_reward",
-                    episode_id=f"lerobot_{hf_name.replace('/', '_')}_ep{i:05d}",
-                    state_seq=state,
-                    episode_label=episode_label,
-                    source_label_type="reward",
-                    metadata={"hf_dataset": hf_name, "reward": reward_val},
-                )
-                episodes.append(ep)
+            # Flush last episode
+            if current_states and len(episodes) < max_episodes:
+                ep = flush_episode(current_ep_idx, current_states, current_actions,
+                                   current_rewards, hf_name, len(episodes))
+                if ep:
+                    episodes.append(ep)
 
             if episodes:
                 report["success"] = True
                 report["n_episodes"] = len(episodes)
                 report["source"] = hf_name
+                report["rows_consumed"] = rows_consumed
                 label_counts = {}
                 for ep in episodes:
                     lbl = ep["episode_label"] or "unlabeled"
                     label_counts[lbl] = label_counts.get(lbl, 0) + 1
                 report["label_distribution"] = label_counts
-                print(f"[LeRobot] Loaded {len(episodes)} episodes from {hf_name}.")
+                print(f"[LeRobot] Loaded {len(episodes)} episodes ({rows_consumed} rows) from {hf_name}.")
                 return episodes, report
 
         except Exception as e:

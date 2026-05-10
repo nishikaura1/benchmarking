@@ -1,0 +1,182 @@
+{
+  "dataset": "uci_failures",
+  "label_type": "human",
+  "n_episodes_total": 200,
+  "n_episodes_usable": 200,
+  "feature_dim": 72,
+  "label_distribution": {
+    "nominal": 59,
+    "failure": 141
+  },
+  "eda": {
+    "dataset": "uci_failures",
+    "n_episodes": 200,
+    "label_distribution": {
+      "nominal": 59,
+      "failure": 141
+    },
+    "label_type": "human",
+    "timesteps_mean": 15.0,
+    "timesteps_min": 15,
+    "timesteps_max": 15,
+    "state_dim": 6,
+    "has_actions_pct": 0.0,
+    "has_step_labels_pct": 0.0,
+    "has_video_pct": 0.0,
+    "class_balance": {
+      "nominal": 0.295,
+      "failure": 0.705
+    }
+  },
+  "model_results": {
+    "IsolationForest": {
+      "model": "IsolationForest",
+      "label_type": "human",
+      "n_nominal": 59,
+      "n_failure": 141,
+      "fit_on": "nominal_only",
+      "anomaly_score_mean": 0.5728,
+      "anomaly_score_std": 0.3291,
+      "threshold_75pct": 0.2949,
+      "metrics_75pct": {
+        "label_type": "human",
+        "n_samples": 200,
+        "n_positive": 141,
+        "class_balance": 0.705,
+        "accuracy": 0.9,
+        "precision": 0.9007,
+        "recall": 0.9645,
+        "f1": 0.9315,
+        "macro_f1": 0.8732,
+        "confusion_matrix": {
+          "tn": 44,
+          "fp": 15,
+          "fn": 5,
+          "tp": 136
+        },
+        "false_positive_rate": 0.2542,
+        "detection_rate": 0.9645,
+        "roc_auc": 0.9565,
+        "pr_auc": 0.9792,
+        "brier_score": 0.1041
+      },
+      "review_rate_sweep": {
+        "review_rate_10pct": {
+          "threshold": 0.9633,
+          "review_rate_actual": 0.1,
+          "precision": 1.0,
+          "recall": 0.1418
+        },
+        "review_rate_20pct": {
+          "threshold": 0.9074,
+          "review_rate_actual": 0.2,
+          "precision": 1.0,
+          "recall": 0.2837
+        },
+        "review_rate_30pct": {
+          "threshold": 0.8412,
+          "review_rate_actual": 0.305,
+          "precision": 1.0,
+          "recall": 0.4326
+        }
+      }
+    },
+    "RandomForest": {
+      "model": "RandomForest",
+      "label_type": "human",
+      "classes": [
+        "failure",
+        "nominal"
+      ],
+      "class_distribution": {
+        "failure": 141,
+        "nominal": 59
+      },
+      "n_samples": 200,
+      "n_classes": 2,
+      "evaluation": "stratified_cv",
+      "n_folds": 5,
+      "metrics": {
+        "label_type": "human",
+        "n_samples": 200,
+        "n_positive": 141,
+        "class_balance": 0.705,
+        "accuracy": 0.82,
+        "precision": 0.8832,
+        "recall": 0.8582,
+        "f1": 0.8705,
+        "macro_f1": 0.7877,
+        "confusion_matrix": {
+          "tn": 43,
+          "fp": 16,
+          "fn": 20,
+          "tp": 121
+        },
+        "false_positive_rate": 0.2712,
+        "detection_rate": 0.8582,
+        "roc_auc": 0.9223,
+        "pr_auc": 0.9656,
+        "brier_score": 0.1209
+      }
+    },
+    "HistGradientBoosting": {
+      "model": "HistGradientBoosting",
+      "label_type": "human",
+      "classes": [
+        "failure",
+        "nominal"
+      ],
+      "class_distribution": {
+        "failure": 141,
+        "nominal": 59
+      },
+      "n_samples": 200,
+      "n_classes": 2,
+      "evaluation": "stratified_cv",
+      "n_folds": 5,
+      "metrics": {
+        "label_type": "human",
+        "n_samples": 200,
+        "n_positive": 141,
+        "class_balance": 0.705,
+        "accuracy": 0.845,
+        "precision": 0.8819,
+        "recall": 0.9007,
+        "f1": 0.8912,
+        "macro_f1": 0.8108,
+        "confusion_matrix": {
+          "tn": 42,
+          "fp": 17,
+          "fn": 14,
+          "tp": 127
+        },
+        "false_positive_rate": 0.2881,
+        "detection_rate": 0.9007,
+        "roc_auc": 0.9172,
+        "pr_auc": 0.9618,
+        "brier_score": 0.1003
+      }
+    }
+  },
+  "access_report": {
+    "dataset": "uci_failures",
+    "url": "https://archive.ics.uci.edu/static/public/138/robot+execution+failures.zip",
+    "label_type": "human",
+    "attempted": true,
+    "success": true,
+    "n_episodes": 200,
+    "failure_reason": null,
+    "caveats": [
+      "Human-labeled failure classes \u2014 gold standard for tabular models",
+      "Proprioceptive only (force/torque from PUMA-560 arm) \u2014 no video",
+      "Small dataset: typically 88 episodes across 5 task files",
+      "Sim-to-real: collected on real robot but 1980s-90s hardware",
+      "Cross-dataset transfer to modern robots may be poor"
+    ],
+    "label_distribution": {
+      "nominal": 59,
+      "failure": 141
+    }
+  },
+  "elapsed_seconds": 1.89
+}

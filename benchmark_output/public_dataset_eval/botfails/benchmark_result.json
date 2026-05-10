@@ -1,0 +1,182 @@
+{
+  "dataset": "botfails",
+  "label_type": "human",
+  "n_episodes_total": 200,
+  "n_episodes_usable": 200,
+  "feature_dim": 90,
+  "label_distribution": {
+    "nominal": 100,
+    "failure": 100
+  },
+  "eda": {
+    "dataset": "botfails",
+    "n_episodes": 200,
+    "label_distribution": {
+      "nominal": 100,
+      "failure": 100
+    },
+    "label_type": "human",
+    "timesteps_mean": 1340.955,
+    "timesteps_min": 35,
+    "timesteps_max": 2090,
+    "state_dim": 6,
+    "has_actions_pct": 100.0,
+    "has_step_labels_pct": 0.0,
+    "has_video_pct": 0.0,
+    "class_balance": {
+      "nominal": 0.5,
+      "failure": 0.5
+    }
+  },
+  "model_results": {
+    "IsolationForest": {
+      "model": "IsolationForest",
+      "label_type": "human",
+      "n_nominal": 100,
+      "n_failure": 100,
+      "fit_on": "nominal_only",
+      "anomaly_score_mean": 0.1853,
+      "anomaly_score_std": 0.137,
+      "threshold_75pct": 0.1957,
+      "metrics_75pct": {
+        "label_type": "human",
+        "n_samples": 200,
+        "n_positive": 100,
+        "class_balance": 0.5,
+        "accuracy": 0.615,
+        "precision": 0.6575,
+        "recall": 0.48,
+        "f1": 0.5549,
+        "macro_f1": 0.6079,
+        "confusion_matrix": {
+          "tn": 75,
+          "fp": 25,
+          "fn": 52,
+          "tp": 48
+        },
+        "false_positive_rate": 0.25,
+        "detection_rate": 0.48,
+        "roc_auc": 0.6584,
+        "pr_auc": 0.6275,
+        "brier_score": 0.3424
+      },
+      "review_rate_sweep": {
+        "review_rate_10pct": {
+          "threshold": 0.3311,
+          "review_rate_actual": 0.1,
+          "precision": 0.7,
+          "recall": 0.14
+        },
+        "review_rate_20pct": {
+          "threshold": 0.2525,
+          "review_rate_actual": 0.2,
+          "precision": 0.725,
+          "recall": 0.29
+        },
+        "review_rate_30pct": {
+          "threshold": 0.2154,
+          "review_rate_actual": 0.3,
+          "precision": 0.6833,
+          "recall": 0.41
+        }
+      }
+    },
+    "RandomForest": {
+      "model": "RandomForest",
+      "label_type": "human",
+      "classes": [
+        "failure",
+        "nominal"
+      ],
+      "class_distribution": {
+        "failure": 100,
+        "nominal": 100
+      },
+      "n_samples": 200,
+      "n_classes": 2,
+      "evaluation": "stratified_cv",
+      "n_folds": 5,
+      "metrics": {
+        "label_type": "human",
+        "n_samples": 200,
+        "n_positive": 100,
+        "class_balance": 0.5,
+        "accuracy": 0.635,
+        "precision": 0.6392,
+        "recall": 0.62,
+        "f1": 0.6294,
+        "macro_f1": 0.6349,
+        "confusion_matrix": {
+          "tn": 65,
+          "fp": 35,
+          "fn": 38,
+          "tp": 62
+        },
+        "false_positive_rate": 0.35,
+        "detection_rate": 0.62,
+        "roc_auc": 0.6966,
+        "pr_auc": 0.7345,
+        "brier_score": 0.2191
+      }
+    },
+    "HistGradientBoosting": {
+      "model": "HistGradientBoosting",
+      "label_type": "human",
+      "classes": [
+        "failure",
+        "nominal"
+      ],
+      "class_distribution": {
+        "failure": 100,
+        "nominal": 100
+      },
+      "n_samples": 200,
+      "n_classes": 2,
+      "evaluation": "stratified_cv",
+      "n_folds": 5,
+      "metrics": {
+        "label_type": "human",
+        "n_samples": 200,
+        "n_positive": 100,
+        "class_balance": 0.5,
+        "accuracy": 0.545,
+        "precision": 0.5429,
+        "recall": 0.57,
+        "f1": 0.5561,
+        "macro_f1": 0.5447,
+        "confusion_matrix": {
+          "tn": 52,
+          "fp": 48,
+          "fn": 43,
+          "tp": 57
+        },
+        "false_positive_rate": 0.48,
+        "detection_rate": 0.57,
+        "roc_auc": 0.5353,
+        "pr_auc": 0.5491,
+        "brier_score": 0.263
+      }
+    }
+  },
+  "access_report": {
+    "dataset": "botfails",
+    "url": "https://huggingface.co/datasets/kantine/BotFails",
+    "label_type": "human",
+    "attempted": true,
+    "success": true,
+    "n_episodes": 200,
+    "failure_reason": null,
+    "caveats": [
+      "Human-labeled episode-level failure/success",
+      "Step-level labels not confirmed \u2014 may require parsing annotations field",
+      "Loaded via direct parquet download \u2014 datasets library Video feature workaround"
+    ],
+    "source": "direct parquet download via huggingface_hub",
+    "label_distribution": {
+      "nominal": 100,
+      "failure": 100
+    },
+    "has_step_labels": 0
+  },
+  "elapsed_seconds": 2.06
+}
