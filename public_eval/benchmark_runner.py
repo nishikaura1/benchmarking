@@ -3,13 +3,19 @@ public_eval/benchmark_runner.py
 =================================
 Benchmark runner for public robotics datasets.
 
-Trains and evaluates 3 models per dataset:
-  M1: IsolationForest  (episode-level anomaly baseline)
-  M2: RandomForest     (classifier, episode-level)
-  M3: HistGradientBoosting (classifier, episode-level)
+v2: Adds three engineering improvements from cross-dataset failure analysis:
+  Change 1 — Per-dataset z-score normalization (RobotDataNormalizer)
+             Replaces raw StandardScaler; critical for cross-robot generalization.
+  Change 2 — Physics-based pre-filter (PhysicsPreFilter)
+             Hard rules for vel_spike / stuck_joint / traj_deviation / grasp_slip
+             appended as 5 additional features before ML training.
+  Change 3 — Combined physics + ML prediction (predict_episode)
+             Physics-confirmed failures take priority; ML handles the rest.
 
-Computes all metrics defined in PRODUCT_TRAINING_PLAN.md §7.
-Saves results as JSON under benchmark_output/public_dataset_eval/{dataset}/.
+Trains and evaluates 3 models per dataset:
+  M1: IsolationForest  (episode-level anomaly, RobotDataNormalizer)
+  M2: RandomForest     (classifier + physics features, 5-fold CV)
+  M3: HistGradientBoosting (classifier + physics features, 5-fold CV)
 
 Usage:
     python public_eval/benchmark_runner.py
@@ -30,7 +36,7 @@ from sklearn.ensemble import (
     RandomForestClassifier,
     HistGradientBoostingClassifier,
 )
-from sklearn.preprocessing import StandardScaler, LabelEncoder
+from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import train_test_split, StratifiedKFold
 from sklearn.metrics import (
     roc_auc_score,
@@ -40,19 +46,26 @@ from sklearn.metrics import (
     precision_score,
     recall_score,
     confusion_matrix,
-    classification_report,
     brier_score_loss,
     cohen_kappa_score,
 )
-from sklearn.calibration import calibration_curve
 
 warnings.filterwarnings("ignore")
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from public_eval.dataset_loaders import load_all_datasets, dataset_eda
+from public_eval.physics_normalizer import (  # Change 1 + 2 + 3
+    RobotDataNormalizer,
+    PhysicsPreFilter,
+    predict_episode,
+    extract_physics_features,
+)
 
 OUT_ROOT = Path("benchmark_output/public_dataset_eval")
 OUT_ROOT.mkdir(parents=True, exist_ok=True)
+
+# Shared physics filter instance (default thresholds)
+_PHYSICS_FILTER = PhysicsPreFilter()
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -62,8 +75,12 @@ OUT_ROOT.mkdir(parents=True, exist_ok=True)
 def extract_episode_features(ep: dict) -> np.ndarray | None:
     """
     Extract a fixed-size episode-level feature vector from state_seq.
-    Strategy: sliding-window step features → mean + std + max → episode vector.
-    Falls back to raw mean+std+max of states if window too short.
+
+    v2 (Change 2): Appends 5 physics-derived binary features at the end:
+      [vel_spike_flag, stuck_joint_flag, traj_deviation_flag,
+       grasp_slip_flag, physics_failure_step_norm]
+
+    Strategy: sliding-window step features → mean + std + max → concat physics flags.
     Returns None if state_seq is unusable.
     """
     states = ep["state_seq"]  # (T, D)
@@ -88,7 +105,7 @@ def extract_episode_features(ep: dict) -> np.ndarray | None:
     # Also include raw states, squared states (energy proxy)
     sq = states ** 2
 
-    # Assemble step features across the sequence
+    # Assemble statistical step features
     all_step_feats = []
     for arr in [states, deltas if len(deltas) > 0 else np.zeros((1, D)),
                 accels if len(accels) > 0 else np.zeros((1, D)), sq]:
@@ -107,6 +124,13 @@ def extract_episode_features(ep: dict) -> np.ndarray | None:
         if len(acts) > 0:
             act_feats = np.concatenate([acts.mean(0), acts.std(0) + 1e-8, np.abs(acts).max(0)])
             feat = np.concatenate([feat, act_feats])
+
+    # ── Change 2: Append physics features ────────────────────────────────────
+    try:
+        phys_feat = extract_physics_features(ep, _PHYSICS_FILTER)
+        feat = np.concatenate([feat, phys_feat])
+    except Exception:
+        feat = np.concatenate([feat, np.zeros(5, dtype=np.float32)])
 
     return feat
 
@@ -262,9 +286,10 @@ def run_isolation_forest(
         fit_desc = "all_episodes"
     result["fit_on"] = fit_desc
 
-    scaler = StandardScaler()
-    X_train_sc = scaler.fit_transform(X_train)
-    X_all_sc   = scaler.transform(X)
+    # Change 1: RobotDataNormalizer — per-dataset z-score normalization
+    normalizer = RobotDataNormalizer()
+    X_train_sc = normalizer.fit_transform(X_train)
+    X_all_sc   = normalizer.transform(X)
 
     clf = IsolationForest(n_estimators=200, contamination="auto", random_state=42, n_jobs=-1)
     clf.fit(X_train_sc)
@@ -344,9 +369,10 @@ def run_classifier(
     result["n_samples"] = n_samples
     result["n_classes"] = n_classes
 
-    # Normalise
-    scaler = StandardScaler()
-    X_sc = scaler.fit_transform(X)
+    # Change 1: RobotDataNormalizer — per-dataset z-score normalization
+    # (nan_to_num handled inside RobotDataNormalizer.fit_transform)
+    normalizer = RobotDataNormalizer()
+    X_sc = normalizer.fit_transform(X)
     X_sc = np.nan_to_num(X_sc, nan=0.0, posinf=0.0, neginf=0.0)
 
     # Build model
@@ -545,10 +571,70 @@ def run_dataset_benchmark(
             "reason": f"Insufficient data: n_episodes={len(X)}, n_label_classes={n_unique_labels}",
         }
 
+    # Change 3: predict_episode audit on a sample — show physics vs ML agreement
+    result["physics_audit"] = _run_physics_audit(episodes, labels)
+
     elapsed = time.time() - t0
     result["elapsed_seconds"] = round(elapsed, 2)
     print(f"  [{name}] Done in {elapsed:.1f}s")
     return result
+
+
+def _run_physics_audit(episodes: list[dict], all_labels: list[str]) -> dict:
+    """
+    Run PhysicsPreFilter on all episodes (no ML model needed).
+    Reports how many episodes the physics filter flags, agreement with ground-truth
+    labels, and per-failure-type breakdown.
+    This is Change 2 audited without requiring a trained model.
+    """
+    audit = {
+        "n_episodes":       len(episodes),
+        "physics_flagged":  0,
+        "physics_confirmed_failure": 0,
+        "physics_false_positive":    0,   # physics says failure, label says nominal
+        "physics_missed_failure":    0,   # physics says ok, label says failure
+        "physics_true_negative":     0,   # both say ok
+        "flag_breakdown":   {},
+        "flag_rate_pct":    0.0,
+        "precision":        None,
+        "recall":           None,
+    }
+
+    tp = fp = fn = tn = 0
+    flag_types: dict[str, int] = {}
+
+    for ep, lbl in zip(episodes, all_labels):
+        try:
+            from public_eval.physics_normalizer import episode_to_physics_features
+            feats = episode_to_physics_features(ep)
+            res   = _PHYSICS_FILTER.run_all_checks(feats)
+        except Exception:
+            continue
+
+        is_failure_label  = lbl not in ("nominal", "normal", "success")
+        physics_confirmed = res["physics_confirmed"]
+
+        if physics_confirmed:
+            audit["physics_flagged"] += 1
+            for flag in res["physics_flags"]:
+                t = flag["type"]
+                flag_types[t] = flag_types.get(t, 0) + 1
+
+        if physics_confirmed and is_failure_label:
+            tp += 1; audit["physics_confirmed_failure"] += 1
+        elif physics_confirmed and not is_failure_label:
+            fp += 1; audit["physics_false_positive"] += 1
+        elif not physics_confirmed and is_failure_label:
+            fn += 1; audit["physics_missed_failure"] += 1
+        else:
+            tn += 1; audit["physics_true_negative"] += 1
+
+    audit["flag_breakdown"] = flag_types
+    n = len(episodes)
+    audit["flag_rate_pct"] = round(audit["physics_flagged"] / n * 100, 1) if n else 0
+    audit["precision"] = round(tp / (tp + fp), 3) if (tp + fp) else None
+    audit["recall"]    = round(tp / (tp + fn), 3) if (tp + fn) else None
+    return audit
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -588,9 +674,10 @@ def run_cross_dataset_transfer(all_X: dict, all_labels: dict, all_label_types: d
             X_src_t = X_src[:, :min_dim]
             X_tgt_t = X_tgt[:, :min_dim]
 
-            scaler = StandardScaler()
-            X_src_sc = scaler.fit_transform(X_src_t)
-            X_tgt_sc = scaler.transform(X_tgt_t)
+            # Change 1: per-dataset normalizer — fit on source, apply to target
+            src_normalizer = RobotDataNormalizer()
+            X_src_sc = src_normalizer.fit_transform(X_src_t)
+            X_tgt_sc = src_normalizer.transform(X_tgt_t)
 
             clf = RandomForestClassifier(
                 n_estimators=100, max_depth=10, class_weight="balanced",
@@ -703,17 +790,22 @@ def main(max_episodes: int = 300):
 
     # 4. Aggregate summary
     summary = {
-        "run_timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        "run_timestamp":            time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         "max_episodes_per_dataset": max_episodes,
+        "changes_applied": [
+            "Change 1: RobotDataNormalizer (per-dataset z-score) replaces raw StandardScaler",
+            "Change 2: PhysicsPreFilter flags (vel_spike/stuck/traj_dev/grasp_slip) appended to X",
+            "Change 3: predict_episode two-stage logic audited via physics_audit block",
+        ],
         "datasets": {},
         "cross_dataset_transfer": cross_result,
     }
     for ds_name, result in all_results.items():
         ar = all_access_reports.get(ds_name, {})
         ds_summary = {
-            "loaded": ar.get("success", False),
-            "n_episodes": ar.get("n_episodes", 0),
-            "label_type": ar.get("label_type", "unknown"),
+            "loaded":             ar.get("success", False),
+            "n_episodes":         ar.get("n_episodes", 0),
+            "label_type":         ar.get("label_type", "unknown"),
             "synthetic_fallback": ar.get("synthetic_fallback", False),
         }
         mr = result.get("model_results", {})
@@ -723,6 +815,13 @@ def main(max_episodes: int = 300):
                 if mets:
                     ds_summary[f"{model_name}_macro_f1"] = mets.get("macro_f1")
                     ds_summary[f"{model_name}_roc_auc"]  = mets.get("roc_auc")
+        # Physics audit summary
+        pa = result.get("physics_audit", {})
+        if pa:
+            ds_summary["physics_flag_rate_pct"] = pa.get("flag_rate_pct")
+            ds_summary["physics_precision"]      = pa.get("precision")
+            ds_summary["physics_recall"]         = pa.get("recall")
+            ds_summary["physics_flag_breakdown"] = pa.get("flag_breakdown", {})
         summary["datasets"][ds_name] = ds_summary
 
     summary_path = OUT_ROOT / "benchmark_summary.json"

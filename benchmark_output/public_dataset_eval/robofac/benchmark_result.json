@@ -3,7 +3,7 @@
   "label_type": "vqa",
   "n_episodes_total": 200,
   "n_episodes_usable": 200,
-  "feature_dim": 24,
+  "feature_dim": 29,
   "label_distribution": {
     "failure": 162,
     "nominal": 38
@@ -35,49 +35,49 @@
       "n_nominal": 38,
       "n_failure": 162,
       "fit_on": "nominal_only",
-      "anomaly_score_mean": 0.4059,
-      "anomaly_score_std": 0.2431,
-      "threshold_75pct": 0.3683,
+      "anomaly_score_mean": 0.3933,
+      "anomaly_score_std": 0.2374,
+      "threshold_75pct": 0.3932,
       "metrics_75pct": {
         "label_type": "vqa",
         "n_samples": 200,
         "n_positive": 162,
         "class_balance": 0.81,
-        "accuracy": 0.625,
-        "precision": 0.9065,
-        "recall": 0.5988,
-        "f1": 0.7212,
-        "macro_f1": 0.5743,
+        "accuracy": 0.545,
+        "precision": 0.8901,
+        "recall": 0.5,
+        "f1": 0.6403,
+        "macro_f1": 0.5106,
         "confusion_matrix": {
           "tn": 28,
           "fp": 10,
-          "fn": 65,
-          "tp": 97
+          "fn": 81,
+          "tp": 81
         },
         "false_positive_rate": 0.2632,
-        "detection_rate": 0.5988,
-        "roc_auc": 0.7598,
-        "pr_auc": 0.9201,
-        "brier_score": 0.3105
+        "detection_rate": 0.5,
+        "roc_auc": 0.7512,
+        "pr_auc": 0.9188,
+        "brier_score": 0.3226
       },
       "review_rate_sweep": {
         "review_rate_10pct": {
-          "threshold": 0.7553,
+          "threshold": 0.7335,
           "review_rate_actual": 0.1,
-          "precision": 0.95,
-          "recall": 0.1173
+          "precision": 1.0,
+          "recall": 0.1235
         },
         "review_rate_20pct": {
-          "threshold": 0.6285,
+          "threshold": 0.6417,
           "review_rate_actual": 0.2,
           "precision": 0.95,
           "recall": 0.2346
         },
         "review_rate_30pct": {
-          "threshold": 0.5364,
+          "threshold": 0.5249,
           "review_rate_actual": 0.3,
-          "precision": 0.95,
-          "recall": 0.3519
+          "precision": 0.9333,
+          "recall": 0.3457
         }
       }
     },
@@ -101,22 +101,22 @@
         "n_samples": 200,
         "n_positive": 162,
         "class_balance": 0.81,
-        "accuracy": 0.81,
-        "precision": 0.8483,
+        "accuracy": 0.815,
+        "precision": 0.8531,
         "recall": 0.9321,
-        "f1": 0.8882,
-        "macro_f1": 0.6275,
+        "f1": 0.8909,
+        "macro_f1": 0.6421,
         "confusion_matrix": {
-          "tn": 11,
-          "fp": 27,
+          "tn": 12,
+          "fp": 26,
           "fn": 11,
           "tp": 151
         },
-        "false_positive_rate": 0.7105,
+        "false_positive_rate": 0.6842,
         "detection_rate": 0.9321,
-        "roc_auc": 0.7562,
-        "pr_auc": 0.9177,
-        "brier_score": 0.1386
+        "roc_auc": 0.7511,
+        "pr_auc": 0.9159,
+        "brier_score": 0.1397
       }
     },
     "HistGradientBoosting": {
@@ -179,5 +179,17 @@
       "nominal": 38
     }
   },
-  "elapsed_seconds": 1.93
+  "physics_audit": {
+    "n_episodes": 200,
+    "physics_flagged": 0,
+    "physics_confirmed_failure": 0,
+    "physics_false_positive": 0,
+    "physics_missed_failure": 162,
+    "physics_true_negative": 38,
+    "flag_breakdown": {},
+    "flag_rate_pct": 0.0,
+    "precision": null,
+    "recall": 0.0
+  },
+  "elapsed_seconds": 4.81
 }

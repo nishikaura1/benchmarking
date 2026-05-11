@@ -10,7 +10,7 @@
       "delta_f1": -0.4966,
       "n_source": 200,
       "n_target": 200,
-      "feature_dim_used": 24
+      "feature_dim_used": 29
     },
     {
       "source": "botfails",
@@ -22,31 +22,31 @@
       "delta_f1": -0.435,
       "n_source": 200,
       "n_target": 200,
-      "feature_dim_used": 12
+      "feature_dim_used": 17
     },
     {
       "source": "botfails",
       "target": "lerobot_reward",
       "source_label_type": "human",
       "target_label_type": "reward",
-      "cross_macro_f1": 0.3776,
-      "target_indist_macro_f1": 0.8793,
-      "delta_f1": -0.5016,
+      "cross_macro_f1": 0.5773,
+      "target_indist_macro_f1": 0.8611,
+      "delta_f1": -0.2838,
       "n_source": 200,
       "n_target": 200,
-      "feature_dim_used": 60
+      "feature_dim_used": 65
     },
     {
       "source": "botfails",
       "target": "uci_failures",
       "source_label_type": "human",
       "target_label_type": "human",
-      "cross_macro_f1": 0.4135,
+      "cross_macro_f1": 0.4375,
       "target_indist_macro_f1": 0.7619,
-      "delta_f1": -0.3484,
+      "delta_f1": -0.3244,
       "n_source": 200,
       "n_target": 200,
-      "feature_dim_used": 72
+      "feature_dim_used": 77
     },
     {
       "source": "robofac",
@@ -58,7 +58,7 @@
       "delta_f1": -0.0013,
       "n_source": 200,
       "n_target": 200,
-      "feature_dim_used": 12
+      "feature_dim_used": 17
     },
     {
       "source": "robofac",
@@ -66,11 +66,11 @@
       "source_label_type": "vqa",
       "target_label_type": "reward",
       "cross_macro_f1": 0.278,
-      "target_indist_macro_f1": 0.8611,
-      "delta_f1": -0.5831,
+      "target_indist_macro_f1": 0.859,
+      "delta_f1": -0.581,
       "n_source": 200,
       "n_target": 200,
-      "feature_dim_used": 24
+      "feature_dim_used": 29
     },
     {
       "source": "robofac",
@@ -82,7 +82,7 @@
       "delta_f1": -0.3484,
       "n_source": 200,
       "n_target": 200,
-      "feature_dim_used": 24
+      "feature_dim_used": 29
     },
     {
       "source": "vifailback",
@@ -90,11 +90,11 @@
       "source_label_type": "human",
       "target_label_type": "reward",
       "cross_macro_f1": 0.278,
-      "target_indist_macro_f1": 0.84,
-      "delta_f1": -0.562,
+      "target_indist_macro_f1": 0.8448,
+      "delta_f1": -0.5668,
       "n_source": 200,
       "n_target": 200,
-      "feature_dim_used": 12
+      "feature_dim_used": 17
     },
     {
       "source": "vifailback",
@@ -106,7 +106,7 @@
       "delta_f1": -0.3484,
       "n_source": 200,
       "n_target": 200,
-      "feature_dim_used": 12
+      "feature_dim_used": 17
     },
     {
       "source": "lerobot_reward",
@@ -118,7 +118,7 @@
       "delta_f1": -0.5341,
       "n_source": 200,
       "n_target": 200,
-      "feature_dim_used": 60
+      "feature_dim_used": 65
     }
   ]
 }

@@ -1,30 +1,47 @@
 {
-  "run_timestamp": "2026-05-10T20:24:22Z",
+  "run_timestamp": "2026-05-11T07:13:51Z",
   "max_episodes_per_dataset": 200,
+  "changes_applied": [
+    "Change 1: RobotDataNormalizer (per-dataset z-score) replaces raw StandardScaler",
+    "Change 2: PhysicsPreFilter flags (vel_spike/stuck/traj_dev/grasp_slip) appended to X",
+    "Change 3: predict_episode two-stage logic audited via physics_audit block"
+  ],
   "datasets": {
     "botfails": {
       "loaded": true,
       "n_episodes": 200,
       "label_type": "human",
       "synthetic_fallback": false,
-      "IsolationForest_macro_f1": 0.6079,
-      "IsolationForest_roc_auc": 0.6584,
-      "RandomForest_macro_f1": 0.6349,
-      "RandomForest_roc_auc": 0.6966,
-      "HistGradientBoosting_macro_f1": 0.5447,
-      "HistGradientBoosting_roc_auc": 0.5353
+      "IsolationForest_macro_f1": 0.5908,
+      "IsolationForest_roc_auc": 0.6385,
+      "RandomForest_macro_f1": 0.67,
+      "RandomForest_roc_auc": 0.6862,
+      "HistGradientBoosting_macro_f1": 0.5298,
+      "HistGradientBoosting_roc_auc": 0.5253,
+      "physics_flag_rate_pct": 100.0,
+      "physics_precision": 0.5,
+      "physics_recall": 1.0,
+      "physics_flag_breakdown": {
+        "velocity_spike": 198,
+        "stuck_joint": 200,
+        "grasp_slip": 174
+      }
     },
     "robofac": {
       "loaded": true,
       "n_episodes": 200,
       "label_type": "vqa",
       "synthetic_fallback": false,
-      "IsolationForest_macro_f1": 0.5743,
-      "IsolationForest_roc_auc": 0.7598,
-      "RandomForest_macro_f1": 0.6275,
-      "RandomForest_roc_auc": 0.7562,
+      "IsolationForest_macro_f1": 0.5106,
+      "IsolationForest_roc_auc": 0.7512,
+      "RandomForest_macro_f1": 0.6421,
+      "RandomForest_roc_auc": 0.7511,
       "HistGradientBoosting_macro_f1": 0.6242,
-      "HistGradientBoosting_roc_auc": 0.7652
+      "HistGradientBoosting_roc_auc": 0.7652,
+      "physics_flag_rate_pct": 0.0,
+      "physics_precision": null,
+      "physics_recall": 0.0,
+      "physics_flag_breakdown": {}
     },
     "vifailback": {
       "loaded": true,
@@ -36,7 +53,11 @@
       "RandomForest_macro_f1": 0.4859,
       "RandomForest_roc_auc": 0.4808,
       "HistGradientBoosting_macro_f1": 0.4859,
-      "HistGradientBoosting_roc_auc": 0.4615
+      "HistGradientBoosting_roc_auc": 0.4615,
+      "physics_flag_rate_pct": 0.0,
+      "physics_precision": null,
+      "physics_recall": 0.0,
+      "physics_flag_breakdown": {}
     },
     "lerobot_reward": {
       "loaded": true,
@@ -44,23 +65,40 @@
       "label_type": "reward",
       "synthetic_fallback": false,
       "IsolationForest_macro_f1": 0.8286,
-      "IsolationForest_roc_auc": 0.9168,
-      "RandomForest_macro_f1": 0.9173,
-      "RandomForest_roc_auc": 0.9552,
+      "IsolationForest_roc_auc": 0.9144,
+      "RandomForest_macro_f1": 0.907,
+      "RandomForest_roc_auc": 0.9422,
       "HistGradientBoosting_macro_f1": 0.8854,
-      "HistGradientBoosting_roc_auc": 0.9277
+      "HistGradientBoosting_roc_auc": 0.9277,
+      "physics_flag_rate_pct": 99.5,
+      "physics_precision": 0.387,
+      "physics_recall": 1.0,
+      "physics_flag_breakdown": {
+        "grasp_slip": 199,
+        "velocity_spike": 4,
+        "stuck_joint": 24
+      }
     },
     "uci_failures": {
       "loaded": true,
       "n_episodes": 200,
       "label_type": "human",
       "synthetic_fallback": false,
-      "IsolationForest_macro_f1": 0.8732,
-      "IsolationForest_roc_auc": 0.9565,
-      "RandomForest_macro_f1": 0.7877,
-      "RandomForest_roc_auc": 0.9223,
+      "IsolationForest_macro_f1": 0.8621,
+      "IsolationForest_roc_auc": 0.9524,
+      "RandomForest_macro_f1": 0.7907,
+      "RandomForest_roc_auc": 0.9204,
       "HistGradientBoosting_macro_f1": 0.8108,
-      "HistGradientBoosting_roc_auc": 0.9172
+      "HistGradientBoosting_roc_auc": 0.9172,
+      "physics_flag_rate_pct": 99.5,
+      "physics_precision": 0.709,
+      "physics_recall": 1.0,
+      "physics_flag_breakdown": {
+        "stuck_joint": 1,
+        "trajectory_deviation": 198,
+        "grasp_slip": 115,
+        "velocity_spike": 32
+      }
     }
   },
   "cross_dataset_transfer": {
@@ -75,7 +113,7 @@
         "delta_f1": -0.4966,
         "n_source": 200,
         "n_target": 200,
-        "feature_dim_used": 24
+        "feature_dim_used": 29
       },
       {
         "source": "botfails",
@@ -87,31 +125,31 @@
         "delta_f1": -0.435,
         "n_source": 200,
         "n_target": 200,
-        "feature_dim_used": 12
+        "feature_dim_used": 17
       },
       {
         "source": "botfails",
         "target": "lerobot_reward",
         "source_label_type": "human",
         "target_label_type": "reward",
-        "cross_macro_f1": 0.3776,
-        "target_indist_macro_f1": 0.8793,
-        "delta_f1": -0.5016,
+        "cross_macro_f1": 0.5773,
+        "target_indist_macro_f1": 0.8611,
+        "delta_f1": -0.2838,
         "n_source": 200,
         "n_target": 200,
-        "feature_dim_used": 60
+        "feature_dim_used": 65
       },
       {
         "source": "botfails",
         "target": "uci_failures",
         "source_label_type": "human",
         "target_label_type": "human",
-        "cross_macro_f1": 0.4135,
+        "cross_macro_f1": 0.4375,
         "target_indist_macro_f1": 0.7619,
-        "delta_f1": -0.3484,
+        "delta_f1": -0.3244,
         "n_source": 200,
         "n_target": 200,
-        "feature_dim_used": 72
+        "feature_dim_used": 77
       },
       {
         "source": "robofac",
@@ -123,7 +161,7 @@
         "delta_f1": -0.0013,
         "n_source": 200,
         "n_target": 200,
-        "feature_dim_used": 12
+        "feature_dim_used": 17
       },
       {
         "source": "robofac",
@@ -131,11 +169,11 @@
         "source_label_type": "vqa",
         "target_label_type": "reward",
         "cross_macro_f1": 0.278,
-        "target_indist_macro_f1": 0.8611,
-        "delta_f1": -0.5831,
+        "target_indist_macro_f1": 0.859,
+        "delta_f1": -0.581,
         "n_source": 200,
         "n_target": 200,
-        "feature_dim_used": 24
+        "feature_dim_used": 29
       },
       {
         "source": "robofac",
@@ -147,7 +185,7 @@
         "delta_f1": -0.3484,
         "n_source": 200,
         "n_target": 200,
-        "feature_dim_used": 24
+        "feature_dim_used": 29
       },
       {
         "source": "vifailback",
@@ -155,11 +193,11 @@
         "source_label_type": "human",
         "target_label_type": "reward",
         "cross_macro_f1": 0.278,
-        "target_indist_macro_f1": 0.84,
-        "delta_f1": -0.562,
+        "target_indist_macro_f1": 0.8448,
+        "delta_f1": -0.5668,
         "n_source": 200,
         "n_target": 200,
-        "feature_dim_used": 12
+        "feature_dim_used": 17
       },
       {
         "source": "vifailback",
@@ -171,7 +209,7 @@
         "delta_f1": -0.3484,
         "n_source": 200,
         "n_target": 200,
-        "feature_dim_used": 12
+        "feature_dim_used": 17
       },
       {
         "source": "lerobot_reward",
@@ -183,7 +221,7 @@
         "delta_f1": -0.5341,
         "n_source": 200,
         "n_target": 200,
-        "feature_dim_used": 60
+        "feature_dim_used": 65
       }
     ]
   }

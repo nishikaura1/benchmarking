@@ -3,7 +3,7 @@
   "label_type": "human",
   "n_episodes_total": 200,
   "n_episodes_usable": 200,
-  "feature_dim": 12,
+  "feature_dim": 17,
   "label_distribution": {
     "nominal": 11,
     "failure": 189
@@ -177,5 +177,17 @@
       "failure": 189
     }
   },
-  "elapsed_seconds": 1.62
+  "physics_audit": {
+    "n_episodes": 200,
+    "physics_flagged": 0,
+    "physics_confirmed_failure": 0,
+    "physics_false_positive": 0,
+    "physics_missed_failure": 189,
+    "physics_true_negative": 11,
+    "flag_breakdown": {},
+    "flag_rate_pct": 0.0,
+    "precision": null,
+    "recall": 0.0
+  },
+  "elapsed_seconds": 4.34
 }
