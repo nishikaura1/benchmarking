@@ -274,6 +274,28 @@ header{
 .fc-metric{display:flex;justify-content:space-between;font-size:10px}
 .fc-mk{color:#8a5050}.fc-mv{font-family:monospace;color:#d08080}
 
+/* ML score panel */
+#ml-score-panel{
+  display:flex;flex-direction:column;gap:6px;
+  background:#070f12;border:1px solid #1a3a4a;border-radius:8px;
+  padding:10px 12px;
+}
+.ml-hdr{display:flex;align-items:center;gap:6px}
+.ml-dot{font-size:10px;color:#26bfb0}
+.ml-ttl{font-size:10px;font-weight:700;color:#8ab;letter-spacing:.5px;text-transform:uppercase;flex:1}
+.ml-rec{font-size:10px;font-weight:800;padding:2px 6px;border-radius:4px;text-transform:uppercase;letter-spacing:.4px}
+.ml-rec.approve{background:#0d3320;color:#2ecc71}
+.ml-rec.flag{background:#2d2000;color:#f39c12}
+.ml-rec.reject{background:#2d0808;color:#e74c3c}
+.ml-rec.review{background:#111d2a;color:#5a9fc8}
+.ml-bar-wrap{display:flex;align-items:center;gap:8px}
+.ml-bar-bg{flex:1;height:6px;background:#0d1e26;border-radius:3px;overflow:hidden}
+.ml-bar-fill{height:100%;border-radius:3px;transition:width .4s ease,background .4s ease}
+.ml-score-val{font-size:11px;font-weight:700;font-family:monospace;color:#26bfb0;min-width:32px;text-align:right}
+.ml-meta{display:flex;flex-direction:column;gap:2px;padding-top:6px;border-top:1px solid #1a3a4a}
+.ml-row{display:flex;justify-content:space-between;font-size:10px}
+.ml-k{color:#4a7a8a}.ml-v{font-family:monospace;color:#8ecfe0;text-align:right;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
 /* Live analysis log */
 #live-log-block{
   background:#060d16;border:1px solid var(--border);border-radius:8px;
@@ -591,6 +613,24 @@ header{
             <div class="fc-metric"><span class="fc-mk">Peak ω</span><span class="fc-mv" id="fc-omega">—</span></div>
             <div class="fc-metric"><span class="fc-mk">Run affected</span><span class="fc-mv" id="fc-pct">—</span></div>
             <div class="fc-metric"><span class="fc-mk">Indicator</span><span class="fc-mv" id="fc-indicator">—</span></div>
+          </div>
+        </div>
+
+        <!-- ML model score panel -->
+        <div id="ml-score-panel">
+          <div class="ml-hdr">
+            <span class="ml-dot" id="ml-dot">●</span>
+            <span class="ml-ttl">Model Score</span>
+            <span class="ml-rec" id="ml-rec">—</span>
+          </div>
+          <div class="ml-bar-wrap">
+            <div class="ml-bar-bg"><div class="ml-bar-fill" id="ml-bar-fill"></div></div>
+            <span class="ml-score-val" id="ml-score-val">—</span>
+          </div>
+          <div class="ml-meta">
+            <div class="ml-row"><span class="ml-k">Predicted class</span><span class="ml-v" id="ml-pred-class">—</span></div>
+            <div class="ml-row"><span class="ml-k">Confidence</span><span class="ml-v" id="ml-conf">—</span></div>
+            <div class="ml-row"><span class="ml-k">Physics flags</span><span class="ml-v" id="ml-phys-flags">—</span></div>
           </div>
         </div>
 
@@ -1489,7 +1529,45 @@ function syncVizUI() {
   // Live analysis log
   updateLiveLog(ep, currentStep);
 
+  // ML score panel — update bar color based on step (pre/post failure)
+  updateMLPanel(ep, isF);
+
   velChart.update('none');
+}
+
+function updateMLPanel(ep, isFailure) {
+  if (!ep) return;
+  const score     = ep.ml_score;
+  const label     = ep.ml_label     || 'unknown';
+  const conf      = ep.ml_confidence;
+  const flags     = ep.physics_flags || [];
+  const rec       = ep.recommendation || 'review';
+  const mlReady   = ep.ml_ready;
+
+  const recEl = document.getElementById('ml-rec');
+  recEl.textContent = rec.toUpperCase();
+  recEl.className   = `ml-rec ${rec}`;
+
+  if (!mlReady || score === null || score === undefined) {
+    document.getElementById('ml-score-val').textContent   = '—';
+    document.getElementById('ml-pred-class').textContent  = mlReady ? 'no score' : 'model offline';
+    document.getElementById('ml-conf').textContent        = '—';
+    document.getElementById('ml-phys-flags').textContent  = '—';
+    document.getElementById('ml-bar-fill').style.width    = '0%';
+    document.getElementById('ml-dot').style.color         = '#444';
+    return;
+  }
+
+  const pct = Math.round(score * 100);
+  const bar = document.getElementById('ml-bar-fill');
+  bar.style.width      = pct + '%';
+  bar.style.background = score > 0.65 ? '#e74c3c' : score > 0.35 ? '#f39c12' : '#2ecc71';
+
+  document.getElementById('ml-score-val').textContent   = pct + '%';
+  document.getElementById('ml-pred-class').textContent  = label.replace(/_/g,' ');
+  document.getElementById('ml-conf').textContent        = conf !== null ? (conf * 100).toFixed(0) + '%' : '—';
+  document.getElementById('ml-phys-flags').textContent  = flags.length ? flags.join(', ') : 'none';
+  document.getElementById('ml-dot').style.color         = score > 0.65 ? '#e74c3c' : score > 0.35 ? '#f39c12' : '#26bfb0';
 }
 
 async function onEnterViz() {
@@ -1520,6 +1598,9 @@ async function onEnterViz() {
   document.getElementById('vl-fstep').textContent = ep.failure_step >= 0 ? `step ${ep.failure_step}` : 'none';
   document.getElementById('vl-nwp').textContent   = ep.waypoints?.length ?? '—';
   document.getElementById('vl-desc').textContent  = ep.description || '—';
+
+  // ML score panel — populate immediately on load
+  updateMLPanel(ep, false);
 
   // Right panel AI decision
   const prev = ep.prev_review || (S._pendingDecision ? { decision: S._pendingDecision, notes: ep.description } : null);

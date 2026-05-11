@@ -15,6 +15,28 @@ from pathlib import Path
 
 import numpy as np
 from fastapi import FastAPI, HTTPException
+
+# ── ML model (loaded once at startup, graceful fallback if missing) ───────────
+_MODEL_DIR = Path(__file__).parent.parent / "benchmark_output" / "client_eval" / "model"
+_RF_MODEL   = None
+_RF_NORM    = None
+_RF_LE      = None
+_ML_READY   = False
+
+try:
+    import joblib, sys
+    sys.path.insert(0, str(Path(__file__).parent.parent))
+    from public_eval.physics_normalizer import PhysicsPreFilter, extract_physics_features
+    from public_eval.benchmark_runner   import extract_episode_features
+
+    _RF_MODEL = joblib.load(_MODEL_DIR / "best_rf_model.joblib")
+    _RF_NORM  = joblib.load(_MODEL_DIR / "best_normalizer.joblib")
+    _RF_LE    = joblib.load(_MODEL_DIR / "label_encoder.joblib")
+    _PHYSICS  = PhysicsPreFilter()
+    _ML_READY = True
+    print("✓ ML model loaded — real-time scoring active")
+except Exception as _ml_err:
+    print(f"⚠  ML model not loaded ({_ml_err}) — scoring disabled")
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -22,6 +44,97 @@ from pydantic import BaseModel
 
 STATIC_DIR = Path(__file__).parent / "static"
 DT = 0.02   # 50 Hz
+
+
+def score_episode(states: np.ndarray) -> dict:
+    """
+    Run the trained RF + PhysicsPreFilter on a trajectory.
+    Returns a scoring dict added to every episode response.
+    Always returns a valid dict — falls back to neutral values if model unavailable.
+    """
+    null_score = {
+        "ml_ready":        False,
+        "ml_label":        "unknown",
+        "ml_confidence":   None,
+        "ml_score":        None,
+        "physics_flags":   [],
+        "physics_confirmed": False,
+        "recommendation":  "review",
+    }
+    if not _ML_READY or states is None or len(states) == 0:
+        return null_score
+
+    try:
+        # Build a minimal episode schema for feature extraction
+        ep = {
+            "dataset_name":    "viewer",
+            "episode_id":      "live",
+            "timesteps":       len(states),
+            "state_seq":       states.astype(np.float32),
+            "action_seq":      None,
+            "video_frames":    None,
+            "image_paths":     None,
+            "language_task":   None,
+            "episode_label":   "unknown",
+            "step_labels":     None,
+            "semantic_labels": None,
+            "failure_category": None,
+            "source_label_type": "synthetic",
+            "metadata":        {},
+        }
+
+        feat = extract_episode_features(ep)
+        if feat is None or not np.isfinite(feat).all():
+            return null_score
+
+        # Pad/trim to model's expected feature dim
+        model_dim = _RF_MODEL.n_features_in_
+        if len(feat) < model_dim:
+            feat = np.concatenate([feat, np.zeros(model_dim - len(feat))])
+        feat = feat[:model_dim].reshape(1, -1)
+
+        feat_n = _RF_NORM.transform(feat)
+        proba  = _RF_MODEL.predict_proba(feat_n)[0]
+        pred   = _RF_MODEL.predict(feat_n)[0]
+        label  = _RF_LE.inverse_transform([pred])[0]
+
+        # Confidence = max class probability; failure_score = 1 - P(nominal)
+        nom_idx    = list(_RF_LE.classes_).index("nominal") if "nominal" in list(_RF_LE.classes_) else -1
+        p_nominal  = float(proba[nom_idx]) if nom_idx >= 0 else 0.5
+        confidence = float(proba.max())
+        ml_score   = round(1.0 - p_nominal, 4)
+
+        # Physics flags
+        phys_result = _PHYSICS.run_all_checks({
+            "velocities": np.diff(states, axis=0) if len(states) > 1 else states,
+            "positions":  states,
+            "grip_force_proxy": states[:, -1],
+        })
+        phys_flags     = [f["type"] for f in phys_result.get("physics_flags", [])]
+        phys_confirmed = phys_result.get("physics_confirmed", False)
+
+        # Recommendation logic
+        if phys_confirmed and ml_score > 0.5:
+            recommendation = "reject"
+        elif phys_confirmed or ml_score > 0.6:
+            recommendation = "flag"
+        elif ml_score < 0.25 and confidence > 0.65:
+            recommendation = "approve"
+        else:
+            recommendation = "review"
+
+        return {
+            "ml_ready":          True,
+            "ml_label":          label,
+            "ml_confidence":     round(confidence, 4),
+            "ml_score":          ml_score,
+            "physics_flags":     phys_flags,
+            "physics_confirmed": phys_confirmed,
+            "recommendation":    recommendation,
+        }
+    except Exception as e:
+        print(f"  score_episode error: {e}")
+        return {**null_score, "ml_ready": True}
 
 AMR_FAILURES = {
     "nominal":      "Successful cleaning run — full coverage achieved",
@@ -162,6 +275,8 @@ def build_episode(episode_id: str, failure_class: str, rng: np.random.RandomStat
         for t in np.linspace(0, 1, 10):
             planned_pts.append([a[0] + t * (b[0] - a[0]), a[1] + t * (b[1] - a[1])])
 
+    ml = score_episode(states)
+
     return {
         "id":            episode_id,
         "failure_class": failure_class,
@@ -174,6 +289,13 @@ def build_episode(episode_id: str, failure_class: str, rng: np.random.RandomStat
         "v_angular":     v_ang,
         "timestamps":    (np.arange(n_steps) * DT).tolist(),
         "description":   AMR_FAILURES[failure_class],
+        "ml_score":          ml["ml_score"],
+        "ml_label":          ml["ml_label"],
+        "ml_confidence":     ml["ml_confidence"],
+        "physics_flags":     ml["physics_flags"],
+        "physics_confirmed": ml["physics_confirmed"],
+        "recommendation":    ml["recommendation"],
+        "ml_ready":          ml["ml_ready"],
     }
 
 
