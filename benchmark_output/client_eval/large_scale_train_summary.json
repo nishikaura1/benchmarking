@@ -1,0 +1,554 @@
+{
+  "target_per_class": 500,
+  "n_real_episodes": 273,
+  "n_augmented_episodes": 3880,
+  "n_total_train_aug": 4098,
+  "n_test": 55,
+  "feature_dim": 89,
+  "augmented_label_dist": {
+    "nominal": 98,
+    "velocity_spike": 500,
+    "gripper_event": 500,
+    "overshoot": 500,
+    "stuck_joint": 500,
+    "position_jerk": 500,
+    "pipette_clog": 500,
+    "perception_failure": 500,
+    "weld_stutter": 500
+  },
+  "configurations": {
+    "real_aug": {
+      "config": "real_aug",
+      "n_train": 4098,
+      "n_test": 55,
+      "n_classes": 9,
+      "class_list": [
+        "gripper_event",
+        "nominal",
+        "overshoot",
+        "perception_failure",
+        "pipette_clog",
+        "position_jerk",
+        "stuck_joint",
+        "velocity_spike",
+        "weld_stutter"
+      ],
+      "train_label_dist": {
+        "nominal": 98,
+        "velocity_spike": 500,
+        "gripper_event": 500,
+        "overshoot": 500,
+        "stuck_joint": 500,
+        "position_jerk": 500,
+        "pipette_clog": 500,
+        "perception_failure": 500,
+        "weld_stutter": 500
+      },
+      "test_label_dist": {
+        "nominal": 24,
+        "overshoot": 4,
+        "stuck_joint": 6,
+        "velocity_spike": 8,
+        "weld_stutter": 1,
+        "position_jerk": 4,
+        "gripper_event": 4,
+        "perception_failure": 2,
+        "pipette_clog": 2
+      },
+      "IsolationForest": {
+        "binary_macro_f1": 0.5084,
+        "roc_auc": 0.5336,
+        "precision": 0.5909,
+        "recall": 0.4194
+      },
+      "RandomForest": {
+        "multiclass_macro_f1": 0.5746,
+        "binary_macro_f1": 0.6857,
+        "accuracy": 0.6,
+        "roc_auc": 0.789,
+        "per_class_f1": {
+          "gripper_event": 0.3333,
+          "nominal": 0.6,
+          "overshoot": 0.8571,
+          "perception_failure": 0.0,
+          "pipette_clog": 0.6667,
+          "position_jerk": 0.8571,
+          "stuck_joint": 0.5,
+          "velocity_spike": 0.8571,
+          "weld_stutter": 0.5
+        },
+        "confusion_matrix": [
+          [
+            2,
+            1,
+            0,
+            0,
+            0,
+            0,
+            1,
+            0,
+            0
+          ],
+          [
+            5,
+            12,
+            0,
+            2,
+            0,
+            0,
+            5,
+            0,
+            0
+          ],
+          [
+            0,
+            1,
+            3,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            2,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            2,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            3,
+            0,
+            0,
+            1
+          ],
+          [
+            0,
+            2,
+            0,
+            0,
+            0,
+            0,
+            4,
+            0,
+            0
+          ],
+          [
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            6,
+            1
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            1
+          ]
+        ]
+      },
+      "HistGradientBoosting": {
+        "multiclass_macro_f1": 0.5854,
+        "binary_macro_f1": 0.6857,
+        "accuracy": 0.6,
+        "roc_auc": 0.8091,
+        "per_class_f1": {
+          "gripper_event": 0.25,
+          "nominal": 0.5714,
+          "overshoot": 0.8571,
+          "perception_failure": 0.5,
+          "pipette_clog": 0.4,
+          "position_jerk": 0.6667,
+          "stuck_joint": 0.8,
+          "velocity_spike": 0.8235,
+          "weld_stutter": 0.4
+        }
+      }
+    },
+    "real_only": {
+      "config": "real_only",
+      "n_train": 218,
+      "n_test": 55,
+      "n_classes": 9,
+      "class_list": [
+        "gripper_event",
+        "nominal",
+        "overshoot",
+        "perception_failure",
+        "pipette_clog",
+        "position_jerk",
+        "stuck_joint",
+        "velocity_spike",
+        "weld_stutter"
+      ],
+      "train_label_dist": {
+        "nominal": 98,
+        "velocity_spike": 31,
+        "gripper_event": 14,
+        "overshoot": 14,
+        "stuck_joint": 25,
+        "position_jerk": 16,
+        "pipette_clog": 10,
+        "perception_failure": 6,
+        "weld_stutter": 4
+      },
+      "test_label_dist": {
+        "nominal": 24,
+        "overshoot": 4,
+        "stuck_joint": 6,
+        "velocity_spike": 8,
+        "weld_stutter": 1,
+        "position_jerk": 4,
+        "gripper_event": 4,
+        "perception_failure": 2,
+        "pipette_clog": 2
+      },
+      "IsolationForest": {
+        "binary_macro_f1": 0.5084,
+        "roc_auc": 0.5336,
+        "precision": 0.5909,
+        "recall": 0.4194
+      },
+      "RandomForest": {
+        "multiclass_macro_f1": 0.4476,
+        "binary_macro_f1": 0.6212,
+        "accuracy": 0.5636,
+        "roc_auc": 0.8414,
+        "per_class_f1": {
+          "gripper_event": 0.0,
+          "nominal": 0.697,
+          "overshoot": 0.4,
+          "perception_failure": 1.0,
+          "pipette_clog": 1.0,
+          "position_jerk": 0.0,
+          "stuck_joint": 0.25,
+          "velocity_spike": 0.1818,
+          "weld_stutter": 0.5
+        },
+        "confusion_matrix": [
+          [
+            0,
+            4,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            23,
+            0,
+            0,
+            0,
+            0,
+            0,
+            1,
+            0
+          ],
+          [
+            0,
+            3,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            2,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            2,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            1,
+            1,
+            1
+          ],
+          [
+            0,
+            5,
+            0,
+            0,
+            0,
+            0,
+            1,
+            0,
+            0
+          ],
+          [
+            0,
+            6,
+            0,
+            0,
+            0,
+            0,
+            0,
+            1,
+            1
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            1
+          ]
+        ]
+      },
+      "HistGradientBoosting": {
+        "multiclass_macro_f1": 0.3974,
+        "binary_macro_f1": 0.6637,
+        "accuracy": 0.4,
+        "roc_auc": 0.7083,
+        "per_class_f1": {
+          "gripper_event": 0.0,
+          "nominal": 0.6087,
+          "overshoot": 0.1429,
+          "perception_failure": 1.0,
+          "pipette_clog": 1.0,
+          "position_jerk": 0.0,
+          "stuck_joint": 0.1429,
+          "velocity_spike": 0.1818,
+          "weld_stutter": 0.5
+        }
+      }
+    },
+    "aug_only": {
+      "config": "aug_only",
+      "n_train": 3880,
+      "n_test": 55,
+      "n_classes": 9,
+      "class_list": [
+        "gripper_event",
+        "nominal",
+        "overshoot",
+        "perception_failure",
+        "pipette_clog",
+        "position_jerk",
+        "stuck_joint",
+        "velocity_spike",
+        "weld_stutter"
+      ],
+      "train_label_dist": {
+        "velocity_spike": 469,
+        "gripper_event": 486,
+        "overshoot": 486,
+        "stuck_joint": 475,
+        "position_jerk": 484,
+        "pipette_clog": 490,
+        "perception_failure": 494,
+        "weld_stutter": 496
+      },
+      "test_label_dist": {
+        "nominal": 24,
+        "overshoot": 4,
+        "stuck_joint": 6,
+        "velocity_spike": 8,
+        "weld_stutter": 1,
+        "position_jerk": 4,
+        "gripper_event": 4,
+        "perception_failure": 2,
+        "pipette_clog": 2
+      },
+      "RandomForest": {
+        "multiclass_macro_f1": 0.4056,
+        "binary_macro_f1": 0.3605,
+        "accuracy": 0.3636,
+        "roc_auc": 0.4315,
+        "per_class_f1": {
+          "gripper_event": 0.3333,
+          "nominal": 0.0,
+          "overshoot": 0.8571,
+          "perception_failure": 0.0,
+          "pipette_clog": 0.0,
+          "position_jerk": 0.8571,
+          "stuck_joint": 0.303,
+          "velocity_spike": 0.8,
+          "weld_stutter": 0.5
+        },
+        "confusion_matrix": [
+          [
+            2,
+            0,
+            0,
+            0,
+            0,
+            0,
+            2,
+            0,
+            0
+          ],
+          [
+            5,
+            0,
+            0,
+            1,
+            1,
+            0,
+            17,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            3,
+            0,
+            0,
+            0,
+            1,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            2,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            2,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            3,
+            0,
+            0,
+            1
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            5,
+            1,
+            0
+          ],
+          [
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            6,
+            1
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            1
+          ]
+        ]
+      },
+      "HistGradientBoosting": {
+        "multiclass_macro_f1": 0.3902,
+        "binary_macro_f1": 0.3605,
+        "accuracy": 0.3818,
+        "roc_auc": 0.4906,
+        "per_class_f1": {
+          "gripper_event": 0.2667,
+          "nominal": 0.0,
+          "overshoot": 0.75,
+          "perception_failure": 0.0,
+          "pipette_clog": 0.0,
+          "position_jerk": 0.75,
+          "stuck_joint": 0.3704,
+          "velocity_spike": 0.875,
+          "weld_stutter": 0.5
+        }
+      }
+    }
+  }
+}
