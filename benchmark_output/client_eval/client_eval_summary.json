@@ -1,0 +1,190 @@
+{
+  "eval_type": "real_client_labeled_data",
+  "datasets": {
+    "biotech": {
+      "dataset": "biotech",
+      "n_episodes": 188,
+      "n_usable": 188,
+      "feature_dim": 77,
+      "label_distribution": {
+        "nominal": 82,
+        "velocity_spike": 31,
+        "pipette_clog": 12,
+        "stuck_joint": 23,
+        "gripper_event": 10,
+        "overshoot": 10,
+        "position_jerk": 12,
+        "perception_failure": 8
+      },
+      "class_list": [
+        "gripper_event",
+        "nominal",
+        "overshoot",
+        "perception_failure",
+        "pipette_clog",
+        "position_jerk",
+        "stuck_joint",
+        "velocity_spike"
+      ],
+      "n_cv_folds": 5,
+      "IsolationForest": {
+        "macro_f1": 0.336,
+        "binary_f1": 0.1594,
+        "precision": 0.3438,
+        "recall": 0.1038,
+        "roc_auc": 0.6687,
+        "accuracy": 0.383
+      },
+      "RandomForest": {
+        "binary_macro_f1": 0.6993,
+        "multiclass_macro_f1": 0.4658,
+        "accuracy": 0.6434,
+        "roc_auc_binary": null,
+        "cv_folds": 5,
+        "per_class_f1": {
+          "gripper_event": 0.0,
+          "nominal": 0.7465,
+          "overshoot": 0.0,
+          "perception_failure": 0.9412,
+          "pipette_clog": 1.0,
+          "position_jerk": 0.0,
+          "stuck_joint": 0.5625,
+          "velocity_spike": 0.44
+        }
+      },
+      "HistGradientBoosting": {
+        "binary_macro_f1": 0.7113,
+        "multiclass_macro_f1": 0.4077,
+        "accuracy": 0.51,
+        "roc_auc_binary": null,
+        "cv_folds": 5,
+        "per_class_f1": {
+          "gripper_event": 0.25,
+          "nominal": 0.6711,
+          "overshoot": 0.0,
+          "perception_failure": 0.5833,
+          "pipette_clog": 0.9167,
+          "position_jerk": 0.0833,
+          "stuck_joint": 0.5185,
+          "velocity_spike": 0.3
+        }
+      }
+    },
+    "acme": {
+      "dataset": "acme",
+      "n_episodes": 85,
+      "n_usable": 85,
+      "feature_dim": 89,
+      "label_distribution": {
+        "nominal": 40,
+        "velocity_spike": 8,
+        "stuck_joint": 8,
+        "position_jerk": 8,
+        "overshoot": 8,
+        "gripper_event": 8,
+        "weld_stutter": 5
+      },
+      "class_list": [
+        "gripper_event",
+        "nominal",
+        "overshoot",
+        "position_jerk",
+        "stuck_joint",
+        "velocity_spike",
+        "weld_stutter"
+      ],
+      "n_cv_folds": 5,
+      "IsolationForest": {
+        "macro_f1": 0.7293,
+        "binary_f1": 0.7356,
+        "precision": 0.7619,
+        "recall": 0.7111,
+        "roc_auc": 0.8461,
+        "accuracy": 0.7294
+      },
+      "RandomForest": {
+        "binary_macro_f1": 0.4492,
+        "multiclass_macro_f1": 0.2527,
+        "accuracy": 0.5412,
+        "roc_auc_binary": null,
+        "cv_folds": 5,
+        "per_class_f1": {
+          "gripper_event": 0.0,
+          "nominal": 0.6723,
+          "overshoot": 0.2222,
+          "position_jerk": 0.0,
+          "stuck_joint": 0.0,
+          "velocity_spike": 0.0,
+          "weld_stutter": 1.0
+        }
+      },
+      "HistGradientBoosting": {
+        "binary_macro_f1": 0.4701,
+        "multiclass_macro_f1": 0.137,
+        "accuracy": 0.1882,
+        "roc_auc_binary": null,
+        "cv_folds": 5,
+        "per_class_f1": {
+          "gripper_event": 0.0,
+          "nominal": 0.3103,
+          "overshoot": 0.125,
+          "position_jerk": 0.1,
+          "stuck_joint": 0.0667,
+          "velocity_spike": 0.0,
+          "weld_stutter": 0.5
+        }
+      }
+    }
+  },
+  "cross_client_transfer": [
+    {
+      "source": "biotech",
+      "target": "acme",
+      "n_source": 188,
+      "n_target": 85,
+      "feature_dim_used": 77,
+      "cross_binary_macro_f1": 0.3462,
+      "cross_precision": 0.5294,
+      "cross_recall": 1.0,
+      "source_indist_macro_f1": 0.8519,
+      "delta_f1": -0.5057
+    },
+    {
+      "source": "acme",
+      "target": "biotech",
+      "n_source": 85,
+      "n_target": 188,
+      "feature_dim_used": 77,
+      "cross_binary_macro_f1": 0.532,
+      "cross_precision": 0.5902,
+      "cross_recall": 0.6792,
+      "source_indist_macro_f1": 0.5357,
+      "delta_f1": -0.0037
+    }
+  ],
+  "physics_audit": [
+    {
+      "dataset": "biotech",
+      "n_episodes": 188,
+      "physics_flag_rate_pct": 98.9,
+      "physics_precision": 0.5591,
+      "physics_recall": 0.9811,
+      "physics_flag_breakdown": {
+        "stuck_joint": 175,
+        "velocity_spike": 79,
+        "grasp_slip": 17
+      }
+    },
+    {
+      "dataset": "acme",
+      "n_episodes": 85,
+      "physics_flag_rate_pct": 100.0,
+      "physics_precision": 0.5294,
+      "physics_recall": 1.0,
+      "physics_flag_breakdown": {
+        "stuck_joint": 85,
+        "velocity_spike": 50
+      }
+    }
+  ]
+}
