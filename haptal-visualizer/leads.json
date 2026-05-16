@@ -1,0 +1,16 @@
+[
+  {
+    "timestamp": "2026-05-16T21:22:42.073548Z",
+    "email": "test@haptal.ai",
+    "filename": "test_robot_traj.csv",
+    "row_count": 200,
+    "columns": [
+      "episode_index",
+      "joint_pos_0",
+      "joint_pos_1",
+      "joint_pos_2",
+      "joint_pos_3",
+      "timestamp"
+    ]
+  }
+]

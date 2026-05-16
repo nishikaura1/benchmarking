@@ -1,0 +1,8 @@
+gradio
+plotly
+datasets
+pandas
+numpy
+requests
+torch
+lerobot
